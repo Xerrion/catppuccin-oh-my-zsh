@@ -24,6 +24,9 @@ check-deps:
 # Generate all flavor screenshots (png + webp)
 screenshots: check-deps $(SCREENSHOTS_WEBP)
 
+# PNGs are intermediate build artifacts — Make deletes them after producing WebPs
+.INTERMEDIATE: $(SCREENSHOTS_PNG)
+
 assets/%.png: tapes/%.tape tapes/config.tape
 	vhs $<
 
