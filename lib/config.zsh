@@ -61,7 +61,7 @@ _ctp_resolve_separator() {
 
 # --- Separator (powerline/rainbow style) ---
 # Controls the glyph shape used between segments.
-# Preset names: arrow, round, thin, slash
+# Preset names: arrow, round, thin, slash, angly, flames, pixels, blocks
 # Or set CATPPUCCIN_PL_SEPARATOR_LEFT / _RIGHT directly for custom glyphs.
 : ${CATPPUCCIN_PL_SEPARATOR:="arrow"}
 
@@ -70,12 +70,20 @@ typeset -gA _CTP_PL_SEP_LEFT=(
   [round]=$'\ue0b4'
   [thin]=$'\ue0b1'
   [slash]=$'\ue0bc'
+  [angly]=$'\ue0b8'
+  [flames]=$'\ue0c0'
+  [pixels]=$'\ue0c6'
+  [blocks]=$'\ue0ce'
 )
 typeset -gA _CTP_PL_SEP_RIGHT=(
   [arrow]=$'\ue0b2'
   [round]=$'\ue0b6'
   [thin]=$'\ue0b3'
   [slash]=$'\ue0be'
+  [angly]=$'\ue0ba'
+  [flames]=$'\ue0c2'
+  [pixels]=$'\ue0c6'
+  [blocks]=$'\ue0d0'
 )
 
 _ctp_resolve_pl_separator() {
