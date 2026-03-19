@@ -456,7 +456,7 @@ preset_preview_powerline() {
   printf "       "
   # os_icon segment (blue bg, dark text)
   printf "$(_bg 137 180 250)$(_fg 17 17 27) ${_PV_LINUX} $(_rs)"
-  # transition: same bg for os_icon->cwd (both blue)
+  # transition: same bg for os_icon->cwd (both blue) — separator invisible
   printf "$(_fg 137 180 250)$(_bg 137 180 250)${_PV_PL}$(_fg 17 17 27) ~/projects $(_rs)"
   # transition: blue->teal
   printf "$(_fg 137 180 250)$(_bg 148 226 213)${_PV_PL}$(_rs)"
@@ -467,9 +467,11 @@ preset_preview_powerline() {
   # gap
   printf "       "
   # Right: [status on surface1][time on lavender]
+  # first right segment — separator fg=segment bg, no bg (default)
   printf "$(_fg 69 71 90)${_PV_PLR}$(_rs)"
   printf "$(_bg 69 71 90)$(_fg 205 214 244) ${_PV_CHECK} $(_rs)"
-  printf "$(_fg 180 190 254)${_PV_PLR}$(_rs)"
+  # transition: surface1->lavender — separator fg=lavender, bg=surface1
+  printf "$(_fg 180 190 254)$(_bg 69 71 90)${_PV_PLR}$(_rs)"
   printf "$(_bg 180 190 254)$(_fg 17 17 27) 12:34 $(_rs)"
   printf "\n"
   printf "       %s>%s \n" "$CLR_GREEN" "$CLR_RESET"
@@ -489,9 +491,11 @@ preset_preview_rainbow() {
   # gap
   printf "  "
   # Right: [python on yellow][exec_time on green]
+  # first right segment
   printf "$(_fg 249 226 175)${_PV_PLR}$(_rs)"
   printf "$(_bg 249 226 175)$(_fg 17 17 27) ${_PV_PYTHON} 3.12 $(_rs)"
-  printf "$(_fg 166 227 161)${_PV_PLR}$(_rs)"
+  # transition: yellow->green
+  printf "$(_fg 166 227 161)$(_bg 249 226 175)${_PV_PLR}$(_rs)"
   printf "$(_bg 166 227 161)$(_fg 17 17 27) ${_PV_CLOCK} 4s $(_rs)"
   printf "\n"
   printf "       %s>%s \n" "$CLR_GREEN" "$CLR_RESET"
@@ -508,11 +512,14 @@ preset_preview_p10k() {
   # gap
   printf "     "
   # Right: [status on surface1][python on yellow][time on surface1]
+  # first right segment
   printf "$(_fg 69 71 90)${_PV_PLR}$(_rs)"
   printf "$(_bg 69 71 90)$(_fg 205 214 244) ${_PV_CHECK} $(_rs)"
-  printf "$(_fg 249 226 175)${_PV_PLR}$(_rs)"
+  # transition: surface1->yellow
+  printf "$(_fg 249 226 175)$(_bg 69 71 90)${_PV_PLR}$(_rs)"
   printf "$(_bg 249 226 175)$(_fg 17 17 27) ${_PV_PYTHON} 3.12 $(_rs)"
-  printf "$(_fg 69 71 90)${_PV_PLR}$(_rs)"
+  # transition: yellow->surface1
+  printf "$(_fg 69 71 90)$(_bg 249 226 175)${_PV_PLR}$(_rs)"
   printf "$(_bg 69 71 90)$(_fg 205 214 244) 12:34 $(_rs)"
   printf "\n"
   printf "       %s>%s \n" "$CLR_GREEN" "$CLR_RESET"
