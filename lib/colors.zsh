@@ -42,3 +42,29 @@ _ctp_element_color() {
 _ctp_element_fg() {
   echo "%F{$(_ctp_element_color "$1")}"
 }
+
+# Resolve a CATPPUCCIN_BG_* variable to its hex color.
+# Usage: _ctp_bg_color "CWD" -> "#89b4fa"
+_ctp_bg_color() {
+  local config_var="CATPPUCCIN_BG_${1}"
+  local color_name="${(P)config_var}"
+  _ctp_color "$color_name"
+}
+
+# Determine a high-contrast foreground for a given background color name.
+# Light backgrounds get "crust" (dark), dark backgrounds get "crust" (dark) too
+# since catppuccin accent colors are all light enough to need dark text.
+# We use a simple luminance heuristic based on the palette position.
+_ctp_contrast_fg() {
+  local bg_name="$1"
+  # Dark backgrounds: base, mantle, crust, surface0, surface1, surface2, overlay0, overlay1
+  case "$bg_name" in
+    base|mantle|crust|surface0|surface1|surface2|overlay0|overlay1)
+      echo "$(_ctp_color "text")"
+      ;;
+    *)
+      # Accent colors and light colors get dark foreground
+      echo "$(_ctp_color "crust")"
+      ;;
+  esac
+}

@@ -1,17 +1,42 @@
 # Catppuccin for Oh My Zsh - Configuration Defaults
 # All settings use ${VAR:=default} so user values set before sourcing are preserved.
 
+# --- Preset ---
+# Load a predefined configuration preset before applying user overrides.
+# Options: none, minimal, classic, powerline, rainbow, p10k
+# Set to "none" to use only your manual configuration.
+: ${CATPPUCCIN_PRESET:="none"}
+
+# Apply preset if requested (presets set defaults, user overrides still win)
+local _ctp_config_dir="${0:A:h}"
+if [[ "$CATPPUCCIN_PRESET" != "none" ]]; then
+  local _ctp_preset_file="${_ctp_config_dir}/presets/${CATPPUCCIN_PRESET}.zsh"
+  if [[ -f "$_ctp_preset_file" ]]; then
+    source "$_ctp_preset_file"
+  else
+    echo "catppuccin: unknown preset '${CATPPUCCIN_PRESET}', ignoring" >&2
+  fi
+fi
+
 # --- Flavor ---
 # Options: mocha, frappe, macchiato, latte
 : ${CATPPUCCIN_FLAVOR:="mocha"}
 
 # --- Layout ---
 # Options: oneline, twoline
-: ${CATPPUCCIN_LAYOUT:="oneline"}
+: ${CATPPUCCIN_LAYOUT:="twoline"}
+
+# --- Style ---
+# Controls how segments are rendered.
+# Options: plain, powerline, rainbow
+#   plain     - Text segments with configurable separator (classic look)
+#   powerline - Colored background segments with powerline arrow separators
+#   rainbow   - Each segment gets a unique background color (like p10k rainbow)
+: ${CATPPUCCIN_STYLE:="plain"}
 
 # --- Separator ---
+# For "plain" style only. Preset names or any literal string.
 # Preset names: arrow, bar, dot, space, powerline, chevron, round, slash
-# Any other value is used as a literal separator string.
 : ${CATPPUCCIN_SEPARATOR:="space"}
 
 typeset -gA _CTP_SEPARATOR_PRESETS=(
@@ -35,7 +60,10 @@ _ctp_resolve_separator() {
 }
 
 # --- Segment Toggles ---
+: ${CATPPUCCIN_SHOW_OS_ICON:="false"}
 : ${CATPPUCCIN_SHOW_ARROW:="true"}
+: ${CATPPUCCIN_SHOW_STATUS:="false"}
+: ${CATPPUCCIN_SHOW_PROMPT_CHAR:="true"}
 : ${CATPPUCCIN_SHOW_USER:="true"}
 : ${CATPPUCCIN_SHOW_HOST:="ssh"}           # never, always, ssh
 : ${CATPPUCCIN_SHOW_CWD:="true"}
@@ -54,14 +82,38 @@ _ctp_resolve_separator() {
 : ${CATPPUCCIN_SHOW_EXEC_TIME:="false"}
 
 # --- Segment Ordering ---
-# Override CATPPUCCIN_SEGMENTS to reorder, remove, or add segments.
+# Left prompt segments (line 1 in twoline mode)
 : ${CATPPUCCIN_SEGMENTS:="arrow user host cwd git venv python node rust go ruby java php k8s jobs exec_time time"}
+
+# Right prompt segments (RPROMPT). Set to "" to disable RPROMPT entirely.
+: ${CATPPUCCIN_RSEGMENTS:=""}
+
+# --- Status Mode ---
+# How the status segment displays: icon, code, both
+: ${CATPPUCCIN_STATUS_MODE:="icon"}
+
+# --- Prompt Char ---
+# Character(s) used for the prompt_char segment (twoline line 2)
+: ${CATPPUCCIN_PROMPT_CHAR:="❯"}
+
+# --- Transient Prompt ---
+# Collapse previous prompts to a minimal form after command execution.
+# Options: true, false
+: ${CATPPUCCIN_TRANSIENT_PROMPT:="false"}
 
 # --- Color Overrides ---
 # Values are palette color NAMES (e.g. green, pink, mauve), not hex codes.
 # Arrow
 : ${CATPPUCCIN_COLOR_ARROW_OK:="green"}
 : ${CATPPUCCIN_COLOR_ARROW_ERR:="red"}
+# OS Icon
+: ${CATPPUCCIN_COLOR_OS_ICON:="blue"}
+# Status
+: ${CATPPUCCIN_COLOR_STATUS_OK:="green"}
+: ${CATPPUCCIN_COLOR_STATUS_ERR:="red"}
+# Prompt Char
+: ${CATPPUCCIN_COLOR_PROMPT_CHAR_OK:="green"}
+: ${CATPPUCCIN_COLOR_PROMPT_CHAR_ERR:="red"}
 # Identity
 : ${CATPPUCCIN_COLOR_USER:="pink"}
 : ${CATPPUCCIN_COLOR_HOST:="sky"}
@@ -87,8 +139,31 @@ _ctp_resolve_separator() {
 : ${CATPPUCCIN_COLOR_K8S:="blue"}
 : ${CATPPUCCIN_COLOR_JOBS:="flamingo"}
 : ${CATPPUCCIN_COLOR_EXEC_TIME:="yellow"}
-# Separator
+# Separator (plain style)
 : ${CATPPUCCIN_COLOR_SEPARATOR:="overlay0"}
+
+# --- Powerline / Rainbow Background Colors ---
+# These define the background color for each segment in powerline/rainbow style.
+# The foreground is auto-selected for contrast (crust for light bg, text for dark bg).
+: ${CATPPUCCIN_BG_OS_ICON:="blue"}
+: ${CATPPUCCIN_BG_ARROW:="surface1"}
+: ${CATPPUCCIN_BG_STATUS:="surface1"}
+: ${CATPPUCCIN_BG_USER:="mauve"}
+: ${CATPPUCCIN_BG_HOST:="sky"}
+: ${CATPPUCCIN_BG_CWD:="blue"}
+: ${CATPPUCCIN_BG_GIT:="teal"}
+: ${CATPPUCCIN_BG_TIME:="lavender"}
+: ${CATPPUCCIN_BG_VENV:="peach"}
+: ${CATPPUCCIN_BG_PYTHON:="yellow"}
+: ${CATPPUCCIN_BG_NODE:="green"}
+: ${CATPPUCCIN_BG_RUST:="peach"}
+: ${CATPPUCCIN_BG_GO:="sapphire"}
+: ${CATPPUCCIN_BG_RUBY:="red"}
+: ${CATPPUCCIN_BG_JAVA:="maroon"}
+: ${CATPPUCCIN_BG_PHP:="lavender"}
+: ${CATPPUCCIN_BG_K8S:="blue"}
+: ${CATPPUCCIN_BG_JOBS:="flamingo"}
+: ${CATPPUCCIN_BG_EXEC_TIME:="yellow"}
 
 # --- Extra Options ---
 : ${CATPPUCCIN_CWD_TRUNCATE:="1"}          # number of dirs to show (0=full path)

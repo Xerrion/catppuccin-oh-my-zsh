@@ -24,12 +24,93 @@ typeset -gr _CTP_ICON_PHP=$'\ue73d'
 typeset -gr _CTP_ICON_K8S=$'\U000f10fe'
 typeset -gr _CTP_ICON_JOBS=$'\uf013'
 typeset -gr _CTP_ICON_EXEC_TIME=$'\uf017'
+typeset -gr _CTP_ICON_STATUS_OK=$'\uf00c'
+typeset -gr _CTP_ICON_STATUS_ERR=$'\uf00d'
+# Powerline separator glyphs
+typeset -gr _CTP_ICON_PL_LEFT=$'\ue0b0'
+typeset -gr _CTP_ICON_PL_LEFT_THIN=$'\ue0b1'
+typeset -gr _CTP_ICON_PL_RIGHT=$'\ue0b2'
+typeset -gr _CTP_ICON_PL_RIGHT_THIN=$'\ue0b3'
+typeset -gr _CTP_ICON_PL_ROUND_LEFT=$'\ue0b4'
+typeset -gr _CTP_ICON_PL_ROUND_RIGHT=$'\ue0b6'
+
+# --- OS Icon detection ---
+# Detects the running OS and returns the appropriate Nerd Font icon.
+_ctp_detect_os_icon() {
+  if [[ -f /etc/os-release ]]; then
+    local id="$(source /etc/os-release 2>/dev/null && echo "$ID")"
+    case "$id" in
+      arch)    echo $'\uf303' ;;
+      ubuntu)  echo $'\uf31b' ;;
+      debian)  echo $'\uf306' ;;
+      fedora)  echo $'\uf30a' ;;
+      centos)  echo $'\uf304' ;;
+      opensuse*|suse) echo $'\uf314' ;;
+      manjaro) echo $'\uf312' ;;
+      nixos)   echo $'\uf313' ;;
+      gentoo)  echo $'\uf30d' ;;
+      alpine)  echo $'\uf300' ;;
+      void)    echo $'\uf32e' ;;
+      *)       echo $'\uf17c' ;;  # generic linux
+    esac
+  elif [[ "$OSTYPE" == darwin* ]]; then
+    echo $'\uf179'  # Apple
+  elif [[ "$OSTYPE" == freebsd* ]]; then
+    echo $'\uf30c'  # FreeBSD
+  elif [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
+    echo $'\uf17a'  # Windows
+  else
+    echo $'\uf17c'  # generic linux fallback
+  fi
+}
+
+# Cache the OS icon at source time (it won't change during a session)
+typeset -gr _CTP_OS_ICON="$(_ctp_detect_os_icon)"
 
 # --- Arrow ---
 # Green arrow on success, red on error. Uses ZSH conditional: %(?.true.false)
 _ctp_segment_arrow() {
   [[ "$CATPPUCCIN_SHOW_ARROW" != "true" ]] && return
   echo "%(?.%F{$(_ctp_element_color "ARROW_OK")}.%F{$(_ctp_element_color "ARROW_ERR")})%1{➜%}%f"
+}
+
+# --- OS Icon ---
+# Shows a Nerd Font icon for the detected operating system.
+_ctp_segment_os_icon() {
+  [[ "$CATPPUCCIN_SHOW_OS_ICON" != "true" ]] && return
+  echo "$(_ctp_element_fg "OS_ICON")%1{${_CTP_OS_ICON}%}%f"
+}
+
+# --- Status ---
+# Shows exit code on error or a check mark on success.
+# Mode: icon (✓/✗), code (exit number on error), both
+_ctp_segment_status() {
+  [[ "$CATPPUCCIN_SHOW_STATUS" != "true" ]] && return
+  local mode="${CATPPUCCIN_STATUS_MODE:-icon}"
+  local ok_fg="%F{$(_ctp_element_color "STATUS_OK")}"
+  local err_fg="%F{$(_ctp_element_color "STATUS_ERR")}"
+
+  case "$mode" in
+    icon)
+      echo "%(?.${ok_fg}%1{${_CTP_ICON_STATUS_OK}%}%f.${err_fg}%1{${_CTP_ICON_STATUS_ERR}%}%f)"
+      ;;
+    code)
+      # Only show on error: display the exit code
+      echo "%(?.${ok_fg}%1{${_CTP_ICON_STATUS_OK}%}%f.${err_fg}%1{${_CTP_ICON_STATUS_ERR}%} %?%f)"
+      ;;
+    both)
+      echo "%(?.${ok_fg}%1{${_CTP_ICON_STATUS_OK}%}%f.${err_fg}%1{${_CTP_ICON_STATUS_ERR}%} %?%f)"
+      ;;
+  esac
+}
+
+# --- Prompt Char ---
+# A prompt character segment for twoline mode line 2.
+# Changes color on success/error. Supports custom characters.
+_ctp_segment_prompt_char() {
+  [[ "$CATPPUCCIN_SHOW_PROMPT_CHAR" != "true" ]] && return
+  local char="${CATPPUCCIN_PROMPT_CHAR:-❯}"
+  echo "%(?.%F{$(_ctp_element_color "PROMPT_CHAR_OK")}.%F{$(_ctp_element_color "PROMPT_CHAR_ERR")})%1{${char}%}%f"
 }
 
 # --- User ---
