@@ -150,7 +150,7 @@ _ctp_render_powerline_left() {
     local piece=""
     if [[ -n "$prev_bg" ]]; then
       # Transition separator: previous bg color as fg, new bg as bg
-      piece+="%F{${prev_bg}}%K{${bg_hex}}%1{${_CTP_ICON_PL_LEFT}%}%f"
+      piece+="%F{${prev_bg}}%K{${bg_hex}}%1{${_CTP_PL_LEFT}%}%f"
     else
       # First segment
       piece+="%K{${bg_hex}}"
@@ -163,7 +163,7 @@ _ctp_render_powerline_left() {
   # Closing separator after last segment
   local result="${(j::)segments}"
   if [[ -n "$prev_bg" ]]; then
-    result+="%k%F{${prev_bg}}%1{${_CTP_ICON_PL_LEFT}%}%f"
+    result+="%k%F{${prev_bg}}%1{${_CTP_PL_LEFT}%}%f"
   fi
   echo "$result"
 }
@@ -191,7 +191,7 @@ _ctp_render_powerline_right() {
     rendered="$(_ctp_strip_fg "$rendered")"
 
     # Right-side powerline: separator comes before the segment
-    local piece="%F{${bg_hex}}%1{${_CTP_ICON_PL_RIGHT}%}%f"
+    local piece="%F{${bg_hex}}%1{${_CTP_PL_RIGHT}%}%f"
     piece+="%K{${bg_hex}}%F{${fg_hex}} ${rendered} %f"
     segments+=("$piece")
   done

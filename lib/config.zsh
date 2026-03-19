@@ -34,8 +34,8 @@ fi
 #   rainbow   - Each segment gets a unique background color (like p10k rainbow)
 : ${CATPPUCCIN_STYLE:="plain"}
 
-# --- Separator ---
-# For "plain" style only. Preset names or any literal string.
+# --- Separator (plain style) ---
+# Preset names or any literal string.
 # Preset names: arrow, bar, dot, space, powerline, chevron, round, slash
 : ${CATPPUCCIN_SEPARATOR:="space"}
 
@@ -58,6 +58,48 @@ _ctp_resolve_separator() {
     echo "${preset}"
   fi
 }
+
+# --- Separator (powerline/rainbow style) ---
+# Controls the glyph shape used between segments.
+# Preset names: arrow, round, thin, slash
+# Or set CATPPUCCIN_PL_SEPARATOR_LEFT / _RIGHT directly for custom glyphs.
+: ${CATPPUCCIN_PL_SEPARATOR:="arrow"}
+
+typeset -gA _CTP_PL_SEP_LEFT=(
+  [arrow]=$'\ue0b0'
+  [round]=$'\ue0b4'
+  [thin]=$'\ue0b1'
+  [slash]=$'\ue0bc'
+)
+typeset -gA _CTP_PL_SEP_RIGHT=(
+  [arrow]=$'\ue0b2'
+  [round]=$'\ue0b6'
+  [thin]=$'\ue0b3'
+  [slash]=$'\ue0be'
+)
+
+_ctp_resolve_pl_separator() {
+  local preset="${CATPPUCCIN_PL_SEPARATOR}"
+  # Left glyph
+  if [[ -n "${CATPPUCCIN_PL_SEPARATOR_LEFT:-}" ]]; then
+    _CTP_PL_LEFT="${CATPPUCCIN_PL_SEPARATOR_LEFT}"
+  elif [[ -n "${_CTP_PL_SEP_LEFT[$preset]+set}" ]]; then
+    _CTP_PL_LEFT="${_CTP_PL_SEP_LEFT[$preset]}"
+  else
+    _CTP_PL_LEFT=$'\ue0b0'  # fallback to arrow
+  fi
+  # Right glyph
+  if [[ -n "${CATPPUCCIN_PL_SEPARATOR_RIGHT:-}" ]]; then
+    _CTP_PL_RIGHT="${CATPPUCCIN_PL_SEPARATOR_RIGHT}"
+  elif [[ -n "${_CTP_PL_SEP_RIGHT[$preset]+set}" ]]; then
+    _CTP_PL_RIGHT="${_CTP_PL_SEP_RIGHT[$preset]}"
+  else
+    _CTP_PL_RIGHT=$'\ue0b2'  # fallback to arrow
+  fi
+}
+
+# Resolve once at source time
+_ctp_resolve_pl_separator
 
 # --- Segment Toggles ---
 : ${CATPPUCCIN_SHOW_OS_ICON:="false"}

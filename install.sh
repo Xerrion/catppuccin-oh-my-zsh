@@ -180,6 +180,7 @@ KEEP_ZSHRC=false
 # Config values
 CFG_FLAVOR="mocha"
 CFG_PRESET="none"
+CFG_PL_SEPARATOR=""
 
 # Resolved paths (set by preflight_checks)
 THEME_DIR=""
@@ -217,9 +218,10 @@ show_help() {
   printf "  zsh install.sh --keep-zshrc       Install files but don't modify .zshrc\n"
   printf "  zsh install.sh --help             Show this message\n\n"
   printf "Environment variables (--non-interactive):\n"
-  printf "  CATPPUCCIN_FLAVOR   mocha|frappe|macchiato|latte   (default: mocha)\n"
-  printf "  CATPPUCCIN_PRESET   none|minimal|classic|powerline|rainbow|p10k  (default: none)\n"
-  printf "  KEEP_ZSHRC          yes  (skip .zshrc modification)\n\n"
+  printf "  CATPPUCCIN_FLAVOR         mocha|frappe|macchiato|latte   (default: mocha)\n"
+  printf "  CATPPUCCIN_PRESET         none|minimal|classic|powerline|rainbow|p10k  (default: none)\n"
+  printf "  CATPPUCCIN_PL_SEPARATOR   arrow|round|thin|slash  (default: arrow)\n"
+  printf "  KEEP_ZSHRC                yes  (skip .zshrc modification)\n\n"
   printf "Examples:\n"
   printf "  # One-liner install with defaults\n"
   printf "  zsh -c \"\$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)\"\n\n"
@@ -325,7 +327,7 @@ wizard_welcome() {
 # ---------------------------------------------------------------------------
 
 wizard_flavor() {
-  step "Step 1/3 - Choose a flavor"
+  step "Step 1 - Choose a flavor"
 
   # Show flavor options with color swatches
   printf "    %s1)%s  " "$CLR_MAUVE" "$CLR_RESET"
@@ -379,7 +381,7 @@ flavor_preview() {
 # ---------------------------------------------------------------------------
 
 wizard_preset() {
-  step "Step 2/3 - Choose a preset"
+  step "Step 2 - Choose a preset"
 
   printf "  %sPresets configure layout, style, segments, and more in one step.%s\n" "$CLR_SUBTEXT" "$CLR_RESET"
   printf "  %sYou can customize individual settings later in .zshrc.%s\n\n" "$CLR_SUBTEXT" "$CLR_RESET"
@@ -539,18 +541,106 @@ preset_preview_p10k() {
 }
 
 # ---------------------------------------------------------------------------
-# Wizard Step 3: Confirmation with .zshrc preview
+# Wizard Step 2b: Separator shape (only for powerline/rainbow presets)
+# ---------------------------------------------------------------------------
+
+# Helper: returns true if the selected preset uses powerline/rainbow style
+_preset_uses_powerline() {
+  case "$CFG_PRESET" in
+    powerline|rainbow|p10k) return 0 ;;
+    *)                      return 1 ;;
+  esac
+}
+
+# Helper: determine total wizard steps (3 or 4 depending on preset)
+_wizard_total_steps() {
+  if _preset_uses_powerline; then
+    echo "4"
+  else
+    echo "3"
+  fi
+}
+
+# Nerd Font glyphs for separator previews
+_SEP_ARROW_L=$'\ue0b0'
+_SEP_ARROW_R=$'\ue0b2'
+_SEP_ROUND_L=$'\ue0b4'
+_SEP_ROUND_R=$'\ue0b6'
+_SEP_THIN_L=$'\ue0b1'
+_SEP_THIN_R=$'\ue0b3'
+_SEP_SLASH_L=$'\ue0bc'
+_SEP_SLASH_R=$'\ue0be'
+
+# Preview a separator shape with colored mock segments
+separator_preview() {
+  local label="$1" sep_l="$2" sep_r="$3"
+  printf "       "
+  # Left side: [blue segment] separator [teal segment] closing
+  printf "$(_bg 137 180 250)$(_fg 17 17 27) ~/dev $(_rs)"
+  printf "$(_fg 137 180 250)$(_bg 148 226 213)${sep_l}$(_rs)"
+  printf "$(_bg 148 226 213)$(_fg 17 17 27) ${_PV_GIT} main $(_rs)"
+  printf "$(_fg 148 226 213)${sep_l}$(_rs)"
+  # gap
+  printf "  "
+  # Right side: separator [yellow segment]
+  printf "$(_fg 249 226 175)${sep_r}$(_rs)"
+  printf "$(_bg 249 226 175)$(_fg 17 17 27) 12:34 $(_rs)"
+  printf "\n"
+}
+
+wizard_separator() {
+  local total="$(_wizard_total_steps)"
+  step "Step 3/${total} - Choose separator shape"
+
+  printf "  %sControls the glyph between colored segments.%s\n" "$CLR_SUBTEXT" "$CLR_RESET"
+  printf "  %sRequires a Nerd Font for proper display.%s\n\n" "$CLR_SUBTEXT" "$CLR_RESET"
+
+  printf "    %s1)%s  Arrow %s(default)%s\n" "$CLR_MAUVE" "$CLR_TEXT" "$CLR_DIM" "$CLR_RESET"
+  separator_preview "arrow" "$_SEP_ARROW_L" "$_SEP_ARROW_R"
+  printf "\n"
+
+  printf "    %s2)%s  Round%s\n" "$CLR_MAUVE" "$CLR_TEXT" "$CLR_RESET"
+  separator_preview "round" "$_SEP_ROUND_L" "$_SEP_ROUND_R"
+  printf "\n"
+
+  printf "    %s3)%s  Thin%s\n" "$CLR_MAUVE" "$CLR_TEXT" "$CLR_RESET"
+  separator_preview "thin" "$_SEP_THIN_L" "$_SEP_THIN_R"
+  printf "\n"
+
+  printf "    %s4)%s  Slash%s\n" "$CLR_MAUVE" "$CLR_TEXT" "$CLR_RESET"
+  separator_preview "slash" "$_SEP_SLASH_L" "$_SEP_SLASH_R"
+  printf "\n"
+
+  ask_key "Separator" "1234q"
+  [[ "$ASK_RESULT" == "q" ]] && { warn "Aborted."; exit 0; }
+
+  case "$ASK_RESULT" in
+    1) CFG_PL_SEPARATOR="arrow" ;;
+    2) CFG_PL_SEPARATOR="round" ;;
+    3) CFG_PL_SEPARATOR="thin" ;;
+    4) CFG_PL_SEPARATOR="slash" ;;
+  esac
+
+  success "Separator: $CFG_PL_SEPARATOR"
+}
+
+# ---------------------------------------------------------------------------
+# Wizard Step 3 (or 4): Confirmation with .zshrc preview
 # ---------------------------------------------------------------------------
 
 wizard_confirm() {
-  step "Step 3/3 - Review and confirm"
+  local total="$(_wizard_total_steps)"
+  step "Step ${total}/${total} - Review and confirm"
 
   local config_block
   config_block="$(build_config_block)"
 
   printf "  %s%sConfiguration:%s\n" "$CLR_TEXT" "$CLR_BOLD" "$CLR_RESET"
-  printf "    %sFlavor:%s  %s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CFG_FLAVOR"
-  printf "    %sPreset:%s  %s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CFG_PRESET"
+  printf "    %sFlavor:%s     %s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CFG_FLAVOR"
+  printf "    %sPreset:%s     %s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CFG_PRESET"
+  if [[ -n "$CFG_PL_SEPARATOR" ]] && _preset_uses_powerline; then
+    printf "    %sSeparator:%s  %s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CFG_PL_SEPARATOR"
+  fi
   printf "\n"
 
   printf "  %s%sFiles:%s\n" "$CLR_TEXT" "$CLR_BOLD" "$CLR_RESET"
@@ -616,6 +706,11 @@ build_config_block() {
 
   # Preset
   [[ "$CFG_PRESET" != "none" ]] && block+=$'\n'"CATPPUCCIN_PRESET=\"$CFG_PRESET\""
+
+  # Powerline separator (only when not default "arrow" and preset uses powerline)
+  if [[ -n "$CFG_PL_SEPARATOR" && "$CFG_PL_SEPARATOR" != "arrow" ]]; then
+    block+=$'\n'"CATPPUCCIN_PL_SEPARATOR=\"$CFG_PL_SEPARATOR\""
+  fi
 
   block+=$'\n'"# --- End Catppuccin Config ---"
   printf '%s' "$block"
@@ -792,6 +887,13 @@ read_env_config() {
     *) warn "Unknown preset '$CFG_PRESET', using none."; CFG_PRESET="none" ;;
   esac
 
+  # Powerline separator (only relevant for powerline/rainbow presets)
+  CFG_PL_SEPARATOR="${CATPPUCCIN_PL_SEPARATOR:-arrow}"
+  case "$CFG_PL_SEPARATOR" in
+    arrow|round|thin|slash) ;;
+    *) warn "Unknown separator '$CFG_PL_SEPARATOR', using arrow."; CFG_PL_SEPARATOR="arrow" ;;
+  esac
+
   # Support KEEP_ZSHRC=yes from environment (saved before parse_args ran)
   if [[ "$_ENV_KEEP_ZSHRC" == "yes" ]]; then
     KEEP_ZSHRC=true
@@ -928,6 +1030,9 @@ print_summary() {
   if [[ "$CFG_PRESET" != "none" ]]; then
     printf "    %sPreset:%s    %s%s%s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CLR_TEXT" "$CFG_PRESET" "$CLR_RESET"
   fi
+  if [[ -n "$CFG_PL_SEPARATOR" && "$CFG_PL_SEPARATOR" != "arrow" ]]; then
+    printf "    %sSeparator:%s %s%s%s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CLR_TEXT" "$CFG_PL_SEPARATOR" "$CLR_RESET"
+  fi
   printf "    %sInstalled:%s %s%s%s\n" "$CLR_SUBTEXT" "$CLR_RESET" "$CLR_TEXT" "$THEME_DIR" "$CLR_RESET"
 
   if [[ -n "${BACKUP_PATH:-}" ]]; then
@@ -977,11 +1082,18 @@ main() {
 
   if $NON_INTERACTIVE; then
     read_env_config
-    info "Non-interactive install: flavor=$CFG_FLAVOR preset=$CFG_PRESET"
+    local _ni_msg="Non-interactive install: flavor=$CFG_FLAVOR preset=$CFG_PRESET"
+    if [[ -n "$CFG_PL_SEPARATOR" && "$CFG_PL_SEPARATOR" != "arrow" ]]; then
+      _ni_msg+=" separator=$CFG_PL_SEPARATOR"
+    fi
+    info "$_ni_msg"
   else
     wizard_welcome
     wizard_flavor
     wizard_preset
+    if _preset_uses_powerline; then
+      wizard_separator
+    fi
     wizard_confirm
   fi
 
