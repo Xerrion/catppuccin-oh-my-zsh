@@ -1,51 +1,53 @@
 <h3 align="center">
-  <img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/logos/exports/1544x1544_circle.png" width="100" alt="Logo"/><br/>
-  <img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/misc/transparent.png" height="30" width="0px"/>
-  Catppuccin for <a href="https://ohmyz.sh/">Oh My Zsh</a>
-  <img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/misc/transparent.png" height="30" width="0px"/>
+	<img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/logos/exports/1544x1544_circle.png" width="100" alt="Logo"/><br/>
+	<img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/misc/transparent.png" height="30" width="0px"/>
+	Catppuccin for <a href="https://ohmyz.sh/">Oh My Zsh</a>
+	<img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/misc/transparent.png" height="30" width="0px"/>
 </h3>
 
 <p align="center">
-  <a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/stargazers"><img src="https://img.shields.io/github/stars/Xerrion/catppuccin-oh-my-zsh?colorA=363a4f&colorB=b7bdf8&style=for-the-badge"></a>
-  <a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/issues"><img src="https://img.shields.io/github/issues/Xerrion/catppuccin-oh-my-zsh?colorA=363a4f&colorB=f5a97f&style=for-the-badge"></a>
-  <a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/contributors"><img src="https://img.shields.io/github/contributors/Xerrion/catppuccin-oh-my-zsh?colorA=363a4f&colorB=a6da95&style=for-the-badge"></a>
+	<a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/stargazers"><img src="https://img.shields.io/github/stars/Xerrion/catppuccin-oh-my-zsh?colorA=363a4f&colorB=b7bdf8&style=for-the-badge"></a>
+	<a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/issues"><img src="https://img.shields.io/github/issues/Xerrion/catppuccin-oh-my-zsh?colorA=363a4f&colorB=f5a97f&style=for-the-badge"></a>
+	<a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/contributors"><img src="https://img.shields.io/github/contributors/Xerrion/catppuccin-oh-my-zsh?colorA=363a4f&colorB=a6da95&style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <img src="assets/catwalk.webp"/>
+	<img src="assets/catwalk.webp"/>
 </p>
 
 ## Previews
 
 <details>
-<summary>Latte</summary>
-<img src="assets/latte.png"/>
+<summary>🌻 Latte</summary>
+<img src="assets/latte.webp"/>
 </details>
 <details>
-<summary>Frappe</summary>
-<img src="assets/frappe.png"/>
+<summary>🪴 Frapp&eacute;</summary>
+<img src="assets/frappe.webp"/>
 </details>
 <details>
-<summary>Macchiato</summary>
-<img src="assets/macchiato.png"/>
+<summary>🌺 Macchiato</summary>
+<img src="assets/macchiato.webp"/>
 </details>
 <details>
-<summary>Mocha</summary>
-<img src="assets/mocha.png"/>
+<summary>🌿 Mocha</summary>
+<img src="assets/mocha.webp"/>
 </details>
 
-## Prerequisites
+## Usage
+
+### Prerequisites
 
 - [Oh My Zsh](https://ohmyz.sh/) installed
 - A [Nerd Font](https://www.nerdfonts.com/) installed and configured in your terminal (required for segment icons and powerline glyphs)
-
-## Installation
 
 ### Quick Install (Recommended)
 
 ```bash
 zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)"
 ```
+
+### Manual Install
 
 1. Clone the repository:
 
@@ -102,15 +104,25 @@ github = "Xerrion/catppuccin-oh-my-zsh"
 ```
 </details>
 
-## Quick Start with Presets
+### Uninstalling
 
-The fastest way to get a great-looking prompt is with a preset. Add this to your `~/.zshrc` **before** `source $ZSH/oh-my-zsh.sh`:
+```bash
+zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)" -- --uninstall
+```
+
+Or manually remove the theme directory and revert your `~/.zshrc` changes.
+
+## Configuration
+
+Add these to your `~/.zshrc` **before** `source $ZSH/oh-my-zsh.sh`.
+
+### Presets
+
+The fastest way to get a great-looking prompt is with a preset:
 
 ```bash
 CATPPUCCIN_PRESET="powerline"  # Options: minimal, classic, powerline, rainbow, p10k
 ```
-
-### Available Presets
 
 | Preset | Style | Layout | Description |
 |--------|-------|--------|-------------|
@@ -127,10 +139,6 @@ CATPPUCCIN_PRESET="powerline"
 CATPPUCCIN_SHOW_USER="true"          # Override: show username even though powerline preset hides it
 CATPPUCCIN_TRANSIENT_PROMPT="false"  # Override: disable transient prompt
 ```
-
-## Configuration
-
-Add these to your `~/.zshrc` **before** `source $ZSH/oh-my-zsh.sh`:
 
 ### Flavor
 
@@ -267,9 +275,10 @@ CATPPUCCIN_GIT_SHOW_STASH=true         # Show stash indicator (default: false)
 CATPPUCCIN_GIT_SHOW_AHEAD_BEHIND=true  # Show ahead/behind counts (default: true)
 ```
 
-## Example Configurations
+### Example Configurations
 
-### Minimal developer setup
+<details>
+<summary>Minimal developer setup</summary>
 
 ```bash
 CATPPUCCIN_FLAVOR="mocha"
@@ -278,8 +287,10 @@ CATPPUCCIN_SEPARATOR="arrow"
 CATPPUCCIN_SHOW_USER="false"
 CATPPUCCIN_SEGMENTS="arrow cwd git venv"
 ```
+</details>
 
-### Powerlevel10k-like setup
+<details>
+<summary>Powerlevel10k-like setup</summary>
 
 ```bash
 CATPPUCCIN_PRESET="p10k"
@@ -293,52 +304,45 @@ CATPPUCCIN_SHOW_STATUS="true"
 CATPPUCCIN_SEGMENTS="os_icon cwd git"
 CATPPUCCIN_RSEGMENTS="status exec_time venv python node rust go jobs time"
 ```
+</details>
 
-### Full rainbow
+<details>
+<summary>Full rainbow</summary>
 
 ```bash
 CATPPUCCIN_PRESET="rainbow"
 ```
+</details>
 
-## Uninstalling
+## 🙋 FAQ
 
-```bash
-zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)" -- --uninstall
-```
+- Q: **_"How do I change the prompt symbol?"_**\
+  A: Set `CATPPUCCIN_PROMPT_CHAR` to any character or string. For the arrow segment, disable it with `CATPPUCCIN_SHOW_ARROW=false`.
 
-Or manually remove the theme directory and revert your `.zshrc` changes.
+- Q: **_"Language version segments are slow. What can I do?"_**\
+  A: Language segments only activate when project files are detected (e.g., `package.json` for Node.js). If you still experience slowness, disable unused language segments or use a preset like `minimal`.
 
-## FAQ
+- Q: **_"How do presets work?"_**\
+  A: Presets use the same `${VAR:=default}` pattern as config defaults. They set values only if you haven't already set them, so any variable you define in `~/.zshrc` before loading the theme takes priority over the preset.
 
-### How do I change the prompt symbol?
+- Q: **_"Can I use powerline style without a Nerd Font?"_**\
+  A: Powerline and rainbow styles require a font with powerline glyphs. Without one, you'll see broken characters. Use `CATPPUCCIN_STYLE="plain"` for font-independent rendering.
 
-Set `CATPPUCCIN_PROMPT_CHAR` to any character or string. For the arrow segment, disable it with `CATPPUCCIN_SHOW_ARROW=false`.
-
-### Language version segments are slow. What can I do?
-
-Language segments only activate when project files are detected (e.g., `package.json` for Node.js). If you still experience slowness, disable unused language segments or use a preset like `minimal`.
-
-### How do presets work?
-
-Presets use the same `${VAR:=default}` pattern as config defaults. They set values only if you haven't already set them, so any variable you define in `.zshrc` before loading the theme takes priority over the preset.
-
-### Can I use powerline style without a Nerd Font?
-
-Powerline and rainbow styles require a font with powerline glyphs. Without one, you'll see broken characters. Use `CATPPUCCIN_STYLE="plain"` for font-independent rendering.
-
-## Thanks to
+## 💝 Thanks to
 
 - [JannoTjarks](https://github.com/JannoTjarks) - Original theme author
 - [Catppuccin](https://github.com/catppuccin) - Soothing pastel color palette
 
+&nbsp;
+
 <p align="center">
-  <img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/footers/gray0_ctp_on_line.svg?sanitize=true" />
+	<img src="https://raw.githubusercontent.com/catppuccin/catppuccin/main/assets/footers/gray0_ctp_on_line.svg?sanitize=true" />
 </p>
 
 <p align="center">
-  Copyright &copy; 2021-present <a href="https://github.com/catppuccin" target="_blank">Catppuccin Org</a>
+	Copyright &copy; 2021-present <a href="https://github.com/catppuccin" target="_blank">Catppuccin Org</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/blob/main/LICENSE"><img src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=MIT&logoColor=d9e0ee&colorA=363a4f&colorB=b7bdf8"/></a>
+	<a href="https://github.com/Xerrion/catppuccin-oh-my-zsh/blob/main/LICENSE"><img src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=MIT&logoColor=d9e0ee&colorA=363a4f&colorB=b7bdf8"/></a>
 </p>

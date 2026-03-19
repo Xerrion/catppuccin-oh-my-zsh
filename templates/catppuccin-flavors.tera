@@ -1,0 +1,12 @@
+---
+whiskers:
+  version: "^2.5.1"
+  matrix:
+    - flavor
+  filename: "catppuccin-flavors/catppuccin-{{ flavor.identifier }}.zsh"
+---
+{%- for _, color in flavor.colors %}
+{%- if not loop.first %}
+{% endif -%}
+catppuccin_{{ color.identifier }}="#{{ color.hex }}"
+{%- endfor %}
