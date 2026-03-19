@@ -176,8 +176,13 @@ _ctp_segment_git() {
     ZSH_THEME_GIT_PROMPT_STASHED="$(_ctp_element_fg "GIT_BRANCH")%1{${_CTP_ICON_GIT_STASH}%}%f"
   fi
 
-  # git_prompt_info is evaluated at prompt render time via $()
-  echo '$(git_prompt_info)'
+  # Call _omz_git_prompt_info (synchronous) directly instead of git_prompt_info.
+  # OMZ's async git_prompt_info() wrapper only returns cached data from
+  # _OMZ_ASYNC_OUTPUT, but the async handler never registers for our theme
+  # because we build PROMPT dynamically in precmd — the literal string
+  # '$(git_prompt_info)' never appears in $PROMPT for OMZ to detect.
+  # Using the sync version avoids this incompatibility.
+  echo '$(_omz_git_prompt_info)'
 }
 
 # --- Time ---

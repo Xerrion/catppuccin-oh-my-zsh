@@ -1,3 +1,4 @@
+Set Shell "zsh"
 Set FontFamily "JetBrainsMono Nerd Font"
 Set FontSize 16
 Set Width 1200
