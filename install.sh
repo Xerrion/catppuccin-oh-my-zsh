@@ -8,43 +8,66 @@
 #   sh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)"
 #   bash install.sh --non-interactive
 #   bash install.sh --uninstall
+#   bash install.sh --keep-zshrc
 #
 set -euo pipefail
 
 # shellcheck disable=SC2059  # Color constants in printf format strings are intentional
 
-INSTALLER_VERSION="1.0.0"
+INSTALLER_VERSION="2.0.0"
 REPO_URL="https://github.com/Xerrion/catppuccin-oh-my-zsh.git"
 
-# --- Catppuccin Mocha palette (ANSI true-color for installer UI) ---
-readonly CLR_ROSEWATER='\033[38;2;245;224;220m'
-readonly CLR_PINK='\033[38;2;245;194;231m'
-readonly CLR_MAUVE='\033[38;2;203;166;247m'
-readonly CLR_RED='\033[38;2;243;139;168m'
-readonly CLR_PEACH='\033[38;2;250;179;135m'
-readonly CLR_YELLOW='\033[38;2;249;226;175m'
-readonly CLR_GREEN='\033[38;2;166;227;161m'
-readonly CLR_TEAL='\033[38;2;148;226;213m'
-readonly CLR_BLUE='\033[38;2;137;180;250m'
-readonly CLR_SKY='\033[38;2;137;220;235m'
-readonly CLR_LAVENDER='\033[38;2;180;190;254m'
-readonly CLR_TEXT='\033[38;2;205;214;244m'
-readonly CLR_SUBTEXT='\033[38;2;166;173;200m'
-readonly CLR_OVERLAY='\033[38;2;108;112;134m'
-readonly CLR_BOLD='\033[1m'
-readonly CLR_DIM='\033[2m'
-readonly CLR_RESET='\033[0m'
+# ---------------------------------------------------------------------------
+# TTY and color detection
+# ---------------------------------------------------------------------------
+
+is_tty() {
+  [[ -t 1 ]] && [[ -t 0 ]]
+}
+
+setup_colors() {
+  if is_tty && [[ "${TERM:-}" != "dumb" ]]; then
+    # Catppuccin Mocha palette (truecolor)
+    CLR_ROSEWATER='\033[38;2;245;224;220m'
+    CLR_FLAMINGO='\033[38;2;242;205;205m'
+    CLR_PINK='\033[38;2;245;194;231m'
+    CLR_MAUVE='\033[38;2;203;166;247m'
+    CLR_RED='\033[38;2;243;139;168m'
+    CLR_MAROON='\033[38;2;235;160;172m'
+    CLR_PEACH='\033[38;2;250;179;135m'
+    CLR_YELLOW='\033[38;2;249;226;175m'
+    CLR_GREEN='\033[38;2;166;227;161m'
+    CLR_TEAL='\033[38;2;148;226;213m'
+    CLR_SKY='\033[38;2;137;220;235m'
+    CLR_SAPPHIRE='\033[38;2;116;199;236m'
+    CLR_BLUE='\033[38;2;137;180;250m'
+    CLR_LAVENDER='\033[38;2;180;190;254m'
+    CLR_TEXT='\033[38;2;205;214;244m'
+    CLR_SUBTEXT='\033[38;2;166;173;200m'
+    CLR_OVERLAY='\033[38;2;108;112;134m'
+    CLR_SURFACE='\033[38;2;69;71;90m'
+    CLR_BOLD='\033[1m'
+    CLR_DIM='\033[2m'
+    CLR_RESET='\033[0m'
+  else
+    CLR_ROSEWATER='' CLR_FLAMINGO='' CLR_PINK='' CLR_MAUVE='' CLR_RED=''
+    CLR_MAROON='' CLR_PEACH='' CLR_YELLOW='' CLR_GREEN='' CLR_TEAL=''
+    CLR_SKY='' CLR_SAPPHIRE='' CLR_BLUE='' CLR_LAVENDER=''
+    CLR_TEXT='' CLR_SUBTEXT='' CLR_OVERLAY='' CLR_SURFACE=''
+    CLR_BOLD='' CLR_DIM='' CLR_RESET=''
+  fi
+}
 
 # ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
 
 info() {
-  printf "${CLR_SKY}  info${CLR_RESET}  %s\n" "$*"
+  printf "${CLR_BLUE}  info${CLR_RESET}  %s\n" "$*"
 }
 
 warn() {
-  printf "${CLR_PEACH}  warn${CLR_RESET}  %s\n" "$*"
+  printf "${CLR_YELLOW}  warn${CLR_RESET}  %s\n" "$*"
 }
 
 error() {
@@ -55,13 +78,8 @@ success() {
   printf "${CLR_GREEN}    ok${CLR_RESET}  %s\n" "$*"
 }
 
-prompt() {
-  local message="$1" default="${2:-}"
-  if [[ -n "$default" ]]; then
-    printf "${CLR_MAUVE}     > ${CLR_TEXT}%s ${CLR_SUBTEXT}[%s]:${CLR_RESET} " "$message" "$default"
-  else
-    printf "${CLR_MAUVE}     > ${CLR_TEXT}%s:${CLR_RESET} " "$message"
-  fi
+step() {
+  printf "\n${CLR_MAUVE}${CLR_BOLD}  %s${CLR_RESET}\n\n" "$*"
 }
 
 abort_handler() {
@@ -73,34 +91,90 @@ abort_handler() {
 trap abort_handler INT
 
 # ---------------------------------------------------------------------------
+# Input helpers
+# ---------------------------------------------------------------------------
+
+# Read a single keypress without requiring Enter.
+# Falls back to line-based read if stty is unavailable.
+read_key() {
+  local key=""
+  if is_tty && command -v stty &>/dev/null; then
+    local old_settings
+    old_settings="$(stty -g)"
+    stty -echo -icanon min 1 time 0 2>/dev/null || true
+    key="$(dd bs=1 count=1 2>/dev/null)" || true
+    stty "$old_settings" 2>/dev/null || true
+    printf "\n"
+  else
+    read -r key
+  fi
+  echo "$key"
+}
+
+# Show a prompt and read a single key. Validates against allowed chars.
+# Usage: ask_key "Choice" "12345q" -> stores result in ASK_RESULT
+ASK_RESULT=""
+ask_key() {
+  local prompt_text="$1"
+  local valid_chars="$2"
+
+  while true; do
+    printf "${CLR_MAUVE}  > ${CLR_TEXT}%s [${CLR_SUBTEXT}%s${CLR_TEXT}]:${CLR_RESET} " "$prompt_text" "$valid_chars"
+    local key
+    key="$(read_key)"
+    key="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+
+    if [[ -n "$key" && "$valid_chars" == *"$key"* ]]; then
+      ASK_RESULT="$key"
+      return 0
+    fi
+    warn "Invalid input. Please press one of: $valid_chars"
+  done
+}
+
+# Ask yes/no, single keypress. Default on Enter.
+# Usage: ask_yn "Proceed?" "y" -> 0=yes, 1=no
+ask_yn() {
+  local prompt_text="$1"
+  local default="${2:-y}"
+  local hint
+
+  if [[ "$default" == "y" ]]; then
+    hint="Y/n"
+  else
+    hint="y/N"
+  fi
+
+  printf "${CLR_MAUVE}  > ${CLR_TEXT}%s ${CLR_SUBTEXT}[%s]:${CLR_RESET} " "$prompt_text" "$hint"
+  local key
+  key="$(read_key)"
+  key="$(echo "$key" | tr '[:upper:]' '[:lower:]')"
+
+  # Empty = Enter = default
+  if [[ -z "$key" || "$key" == $'\n' || "$key" == $'\r' ]]; then
+    key="$default"
+  fi
+
+  [[ "$key" == "y" ]]
+}
+
+# ---------------------------------------------------------------------------
 # Globals (set by wizard or CLI flags)
 # ---------------------------------------------------------------------------
 
 NON_INTERACTIVE=false
 DO_UNINSTALL=false
 DO_HELP=false
+KEEP_ZSHRC=false
 
-# Config values - start with defaults
+# Config values
 CFG_FLAVOR="mocha"
-CFG_LAYOUT="oneline"
-CFG_SEPARATOR="space"
-CFG_SEPARATOR_CUSTOM=""
-CFG_SHOW_TIME="false"
-CFG_SHOW_VENV="true"
-CFG_SHOW_PYTHON="false"
-CFG_SHOW_NODE="false"
-CFG_SHOW_RUST="false"
-CFG_SHOW_GO="false"
-CFG_SHOW_RUBY="false"
-CFG_SHOW_JAVA="false"
-CFG_SHOW_PHP="false"
-CFG_SHOW_K8S="false"
-CFG_SHOW_JOBS="false"
-CFG_SHOW_EXEC_TIME="false"
+CFG_PRESET="none"
 
 # Resolved paths (set by preflight_checks)
 THEME_DIR=""
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
+BACKUP_PATH=""
 
 # ---------------------------------------------------------------------------
 # CLI argument parsing
@@ -111,36 +185,35 @@ parse_args() {
     case "$arg" in
       --non-interactive) NON_INTERACTIVE=true ;;
       --uninstall)       DO_UNINSTALL=true ;;
+      --keep-zshrc)      KEEP_ZSHRC=true ;;
       --help|-h)         DO_HELP=true ;;
       *)                 error "Unknown flag: $arg"; show_help; exit 1 ;;
     esac
   done
+
+  # Auto-detect non-interactive when stdin is not a TTY
+  if ! is_tty && ! $NON_INTERACTIVE && ! $DO_UNINSTALL && ! $DO_HELP; then
+    NON_INTERACTIVE=true
+  fi
 }
 
 show_help() {
   printf "${CLR_TEXT}Catppuccin for Oh My Zsh - Installer v%s${CLR_RESET}\n\n" "$INSTALLER_VERSION"
   printf "Usage:\n"
-  printf "  bash install.sh              Interactive wizard\n"
-  printf "  bash install.sh --non-interactive\n"
-  printf "                               Install with env-var config\n"
-  printf "  bash install.sh --uninstall  Remove theme\n"
-  printf "  bash install.sh --help       Show this message\n\n"
+  printf "  bash install.sh                    Interactive wizard\n"
+  printf "  bash install.sh --non-interactive  Install with env-var config\n"
+  printf "  bash install.sh --uninstall        Remove theme\n"
+  printf "  bash install.sh --keep-zshrc       Install files but don't modify .zshrc\n"
+  printf "  bash install.sh --help             Show this message\n\n"
   printf "Environment variables (--non-interactive):\n"
-  printf "  CATPPUCCIN_FLAVOR        mocha|frappe|macchiato|latte\n"
-  printf "  CATPPUCCIN_LAYOUT        oneline|twoline\n"
-  printf "  CATPPUCCIN_SEPARATOR     space|arrow|bar|dot|powerline|chevron|round|slash|<custom>\n"
-  printf "  CATPPUCCIN_SHOW_TIME     true|false\n"
-  printf "  CATPPUCCIN_SHOW_VENV     true|false\n"
-  printf "  CATPPUCCIN_SHOW_PYTHON   true|false\n"
-  printf "  CATPPUCCIN_SHOW_NODE     true|false\n"
-  printf "  CATPPUCCIN_SHOW_RUST     true|false\n"
-  printf "  CATPPUCCIN_SHOW_GO       true|false\n"
-  printf "  CATPPUCCIN_SHOW_RUBY     true|false\n"
-  printf "  CATPPUCCIN_SHOW_JAVA     true|false\n"
-  printf "  CATPPUCCIN_SHOW_PHP      true|false\n"
-  printf "  CATPPUCCIN_SHOW_K8S      true|false\n"
-  printf "  CATPPUCCIN_SHOW_JOBS     true|false\n"
-  printf "  CATPPUCCIN_SHOW_EXEC_TIME true|false\n"
+  printf "  CATPPUCCIN_FLAVOR   mocha|frappe|macchiato|latte   (default: mocha)\n"
+  printf "  CATPPUCCIN_PRESET   none|minimal|classic|powerline|rainbow|p10k  (default: none)\n"
+  printf "  KEEP_ZSHRC          yes  (skip .zshrc modification)\n\n"
+  printf "Examples:\n"
+  printf "  # One-liner install with defaults\n"
+  printf "  sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)\"\n\n"
+  printf "  # Non-interactive with Frappe flavor and powerline preset\n"
+  printf "  CATPPUCCIN_FLAVOR=frappe CATPPUCCIN_PRESET=powerline bash install.sh --non-interactive\n"
 }
 
 # ---------------------------------------------------------------------------
@@ -164,8 +237,8 @@ preflight_checks() {
   THEME_DIR="${zsh_custom}/themes/catppuccin-oh-my-zsh"
 
   if [[ ! -f "$ZSHRC" ]]; then
-    error ".zshrc not found at $ZSHRC"
-    exit 1
+    warn ".zshrc not found at $ZSHRC"
+    warn "A new .zshrc will need to be created after installation."
   fi
 
   if [[ -d "$THEME_DIR" ]]; then
@@ -179,23 +252,29 @@ handle_existing_install() {
 
   if $NON_INTERACTIVE; then
     info "Non-interactive mode: updating existing installation."
+    info "Pulling latest changes..."
+    git -C "$THEME_DIR" pull --ff-only 2>&1 | while IFS= read -r line; do
+      printf "    ${CLR_DIM}%s${CLR_RESET}\n" "$line"
+    done || {
+      warn "git pull failed, will remove and re-clone."
+      rm -rf "$THEME_DIR"
+    }
     return 0
   fi
 
-  printf "${CLR_YELLOW}  What would you like to do?${CLR_RESET}\n"
-  printf "    1) Update (git pull)\n"
-  printf "    2) Reinstall (remove and re-clone)\n"
-  printf "    3) Abort\n"
-  prompt "Choice" "1"
+  printf "${CLR_TEXT}  What would you like to do?${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}1)${CLR_TEXT} Update ${CLR_SUBTEXT}(git pull)${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}2)${CLR_TEXT} Reinstall ${CLR_SUBTEXT}(remove and re-clone)${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}q)${CLR_TEXT} Quit${CLR_RESET}\n"
 
-  local choice
-  read -r choice
-  choice="${choice:-1}"
+  ask_key "Choice" "12q"
 
-  case "$choice" in
+  case "$ASK_RESULT" in
     1)
       info "Updating via git pull..."
-      git -C "$THEME_DIR" pull --ff-only || {
+      git -C "$THEME_DIR" pull --ff-only 2>&1 | while IFS= read -r line; do
+        printf "    ${CLR_DIM}%s${CLR_RESET}\n" "$line"
+      done || {
         error "git pull failed. Try reinstalling (option 2)."
         exit 1
       }
@@ -206,258 +285,277 @@ handle_existing_install() {
       rm -rf "$THEME_DIR"
       success "Removed. Will re-clone."
       ;;
-    3)
+    q)
       warn "Aborted."
       exit 0
-      ;;
-    *)
-      error "Invalid choice."
-      exit 1
       ;;
   esac
 }
 
 # ---------------------------------------------------------------------------
-# Wizard: Welcome banner
+# Wizard: Welcome
 # ---------------------------------------------------------------------------
 
 wizard_welcome() {
   printf "\n"
-  printf "${CLR_PINK}${CLR_BOLD}"
-  printf "      /\\_/\\    ${CLR_ROSEWATER}Catppuccin for Oh My Zsh${CLR_PINK}\n"
-  printf "     ( o.o )   ${CLR_LAVENDER}Soothing pastel theme${CLR_PINK}\n"
-  printf "      > ^ <    ${CLR_MAUVE}v%s\n" "$INSTALLER_VERSION"
+  printf "${CLR_LAVENDER}${CLR_BOLD}"
+  printf "      /\\_/\\ \n"
+  printf "     ( o.o )  ${CLR_ROSEWATER}Catppuccin for Oh My Zsh${CLR_LAVENDER}\n"
+  printf "      > ^ <   ${CLR_SUBTEXT}v%s${CLR_LAVENDER}\n" "$INSTALLER_VERSION"
   printf "${CLR_RESET}"
-  printf "${CLR_SUBTEXT}      -------   github.com/Xerrion/catppuccin-oh-my-zsh${CLR_RESET}\n"
+  printf "${CLR_OVERLAY}      -------${CLR_RESET}\n"
   printf "\n"
+  printf "  ${CLR_TEXT}This wizard will guide you through installation.${CLR_RESET}\n"
+  printf "  ${CLR_SUBTEXT}Press${CLR_TEXT} q ${CLR_SUBTEXT}at any prompt to quit.${CLR_RESET}\n"
 }
 
 # ---------------------------------------------------------------------------
-# Wizard: Flavor
+# Wizard Step 1: Flavor
 # ---------------------------------------------------------------------------
 
 wizard_flavor() {
-  printf "${CLR_TEXT}${CLR_BOLD}  Select a flavor:${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}1)${CLR_TEXT} Mocha ${CLR_SUBTEXT}(default)${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}2)${CLR_TEXT} Frappé${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}3)${CLR_TEXT} Macchiato${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}4)${CLR_TEXT} Latte${CLR_RESET}\n"
-  prompt "Choice" "1"
+  step "Step 1/3 - Choose a flavor"
 
-  local choice
-  read -r choice
-  choice="${choice:-1}"
+  # Show flavor options with color swatches
+  printf "    ${CLR_MAUVE}1)${CLR_RESET}  "
+  printf "\033[38;2;220;224;232m Latte \033[0m"
+  printf "      ${CLR_SUBTEXT}Light background${CLR_RESET}\n"
 
-  case "$choice" in
-    1) CFG_FLAVOR="mocha" ;;
+  printf "    ${CLR_MAUVE}2)${CLR_RESET}  "
+  printf "\033[38;2;198;208;245m Frappe \033[0m"
+  printf "     ${CLR_SUBTEXT}Medium-dark${CLR_RESET}\n"
+
+  printf "    ${CLR_MAUVE}3)${CLR_RESET}  "
+  printf "\033[38;2;202;211;245m Macchiato \033[0m"
+  printf "  ${CLR_SUBTEXT}Dark${CLR_RESET}\n"
+
+  printf "    ${CLR_MAUVE}4)${CLR_RESET}  "
+  printf "\033[38;2;205;214;244m Mocha \033[0m"
+  printf "      ${CLR_SUBTEXT}Darkest ${CLR_DIM}(default)${CLR_RESET}\n"
+
+  printf "\n"
+
+  # Show a prompt preview in each flavor
+  printf "  ${CLR_SUBTEXT}Preview:${CLR_RESET}\n"
+  flavor_preview "latte"   "\033[38;2;64;160;43m" "\033[38;2;30;102;245m" "\033[38;2;23;146;153m" "\033[48;2;239;241;245m"
+  flavor_preview "frappe"  "\033[38;2;166;209;137m" "\033[38;2;140;170;238m" "\033[38;2;129;200;190m" "\033[48;2;48;52;70m"
+  flavor_preview "macchiato" "\033[38;2;166;218;149m" "\033[38;2;138;173;244m" "\033[38;2;139;213;202m" "\033[48;2;36;39;58m"
+  flavor_preview "mocha"   "\033[38;2;166;227;161m" "\033[38;2;137;180;250m" "\033[38;2;148;226;213m" "\033[48;2;30;30;46m"
+  printf "\n"
+
+  ask_key "Flavor" "1234q"
+  [[ "$ASK_RESULT" == "q" ]] && { warn "Aborted."; exit 0; }
+
+  case "$ASK_RESULT" in
+    1) CFG_FLAVOR="latte" ;;
     2) CFG_FLAVOR="frappe" ;;
     3) CFG_FLAVOR="macchiato" ;;
-    4) CFG_FLAVOR="latte" ;;
-    *) warn "Invalid choice, using mocha."; CFG_FLAVOR="mocha" ;;
+    4) CFG_FLAVOR="mocha" ;;
   esac
 
   success "Flavor: $CFG_FLAVOR"
-  printf "\n"
+}
+
+flavor_preview() {
+  local name="$1" green="$2" blue="$3" teal="$4" bg="$5"
+  printf "    ${CLR_DIM}%-10s${CLR_RESET} " "$name"
+  printf "${green}>${CLR_RESET} ${blue}~/projects${CLR_RESET} ${teal} main${CLR_RESET}\n"
 }
 
 # ---------------------------------------------------------------------------
-# Wizard: Layout
+# Wizard Step 2: Preset
 # ---------------------------------------------------------------------------
 
-wizard_layout() {
-  printf "${CLR_TEXT}${CLR_BOLD}  Select prompt layout:${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}1)${CLR_TEXT} Oneline ${CLR_SUBTEXT}(default)${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}2)${CLR_TEXT} Twoline${CLR_RESET}\n"
-  prompt "Choice" "1"
+wizard_preset() {
+  step "Step 2/3 - Choose a preset"
 
-  local choice
-  read -r choice
-  choice="${choice:-1}"
+  printf "  ${CLR_SUBTEXT}Presets configure layout, style, segments, and more in one step.${CLR_RESET}\n"
+  printf "  ${CLR_SUBTEXT}You can customize individual settings later in .zshrc.${CLR_RESET}\n\n"
 
-  case "$choice" in
-    1) CFG_LAYOUT="oneline" ;;
-    2) CFG_LAYOUT="twoline" ;;
-    *) warn "Invalid choice, using oneline."; CFG_LAYOUT="oneline" ;;
+  # Preset options with inline previews
+  printf "    ${CLR_MAUVE}1)${CLR_TEXT}  Minimal${CLR_RESET}\n"
+  printf "       ${CLR_SUBTEXT}One-line, clean. Just the essentials.${CLR_RESET}\n"
+  preset_preview_minimal
+  printf "\n"
+
+  printf "    ${CLR_MAUVE}2)${CLR_TEXT}  Classic${CLR_RESET}\n"
+  printf "       ${CLR_SUBTEXT}Two-line with user, host, directory, git. Traditional feel.${CLR_RESET}\n"
+  preset_preview_classic
+  printf "\n"
+
+  printf "    ${CLR_MAUVE}3)${CLR_TEXT}  Powerline ${CLR_DIM}(recommended)${CLR_RESET}\n"
+  printf "       ${CLR_SUBTEXT}Colored backgrounds with powerline arrows. Transient prompt.${CLR_RESET}\n"
+  preset_preview_powerline
+  printf "\n"
+
+  printf "    ${CLR_MAUVE}4)${CLR_TEXT}  Rainbow${CLR_RESET}\n"
+  printf "       ${CLR_SUBTEXT}Every segment has a unique color. Maximum flair.${CLR_RESET}\n"
+  preset_preview_rainbow
+  printf "\n"
+
+  printf "    ${CLR_MAUVE}5)${CLR_TEXT}  p10k${CLR_RESET}\n"
+  printf "       ${CLR_SUBTEXT}Closest match to Powerlevel10k. Great for p10k migrants.${CLR_RESET}\n"
+  preset_preview_p10k
+  printf "\n"
+
+  printf "    ${CLR_MAUVE}6)${CLR_TEXT}  None ${CLR_SUBTEXT}(defaults only, configure manually)${CLR_RESET}\n"
+  printf "\n"
+
+  ask_key "Preset" "123456q"
+  [[ "$ASK_RESULT" == "q" ]] && { warn "Aborted."; exit 0; }
+
+  case "$ASK_RESULT" in
+    1) CFG_PRESET="minimal" ;;
+    2) CFG_PRESET="classic" ;;
+    3) CFG_PRESET="powerline" ;;
+    4) CFG_PRESET="rainbow" ;;
+    5) CFG_PRESET="p10k" ;;
+    6) CFG_PRESET="none" ;;
   esac
 
-  success "Layout: $CFG_LAYOUT"
+  success "Preset: $CFG_PRESET"
+}
+
+# --- Preset previews using Catppuccin Mocha colors ---
+# These show an approximate rendering of what the prompt will look like.
+
+preset_preview_minimal() {
+  printf "       ${CLR_GREEN}>${CLR_RESET} ${CLR_BLUE}~/projects${CLR_RESET} ${CLR_TEAL} main ${CLR_GREEN}*${CLR_RESET}\n"
+}
+
+preset_preview_classic() {
+  printf "       ${CLR_PINK}user${CLR_OVERLAY} . ${CLR_BLUE}~/projects${CLR_OVERLAY} . ${CLR_TEAL} main ${CLR_GREEN}*${CLR_RESET}    ${CLR_OVERLAY}|${CLR_RESET} ${CLR_GREEN}v${CLR_RESET} ${CLR_YELLOW}2s${CLR_RESET} ${CLR_MAUVE}12:34${CLR_RESET}\n"
+  printf "       ${CLR_GREEN}>${CLR_RESET} \n"
+}
+
+preset_preview_powerline() {
+  # Simulate powerline segments with background colors
+  printf "       "
+  printf "\033[38;2;17;17;27;48;2;137;180;250m  \033[0m"
+  printf "\033[38;2;137;180;250;48;2;137;180;250m\033[38;2;17;17;27m ~/projects \033[0m"
+  printf "\033[38;2;137;180;250;48;2;148;226;213m\033[0m"
+  printf "\033[48;2;148;226;213m\033[38;2;17;17;27m  main * \033[0m"
+  printf "\033[38;2;148;226;213m\033[0m"
+  printf "             "
+  printf "\033[38;2;69;71;90m\033[48;2;69;71;90m\033[38;2;205;214;244m v \033[0m"
+  printf "\033[38;2;69;71;90m\033[48;2;69;71;90m\033[38;2;205;214;244m 12:34 \033[0m\033[0m"
   printf "\n"
+  printf "       ${CLR_GREEN}>${CLR_RESET} \n"
 }
 
-# ---------------------------------------------------------------------------
-# Wizard: Separator
-# ---------------------------------------------------------------------------
-
-wizard_separator() {
-  printf "${CLR_TEXT}${CLR_BOLD}  Select segment separator:${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}1)${CLR_TEXT} Space ${CLR_SUBTEXT}(default)${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}2)${CLR_TEAL} Arrow ${CLR_OVERLAY}(${CLR_TEAL} ❯ ${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}3)${CLR_TEAL} Bar ${CLR_OVERLAY}(${CLR_TEAL} | ${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}4)${CLR_TEAL} Dot ${CLR_OVERLAY}(${CLR_TEAL} · ${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}5)${CLR_TEAL} Powerline ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0b0'"${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}6)${CLR_TEAL} Chevron ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0b1'"${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}7)${CLR_TEAL} Round ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0b5'"${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}8)${CLR_TEAL} Slash ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0bd'"${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}9)${CLR_TEXT} Custom${CLR_RESET}\n"
-  prompt "Choice" "1"
-
-  local choice
-  read -r choice
-  choice="${choice:-1}"
-
-  case "$choice" in
-    1) CFG_SEPARATOR="space" ;;
-    2) CFG_SEPARATOR="arrow" ;;
-    3) CFG_SEPARATOR="bar" ;;
-    4) CFG_SEPARATOR="dot" ;;
-    5) CFG_SEPARATOR="powerline" ;;
-    6) CFG_SEPARATOR="chevron" ;;
-    7) CFG_SEPARATOR="round" ;;
-    8) CFG_SEPARATOR="slash" ;;
-    9)
-      prompt "Enter custom separator string" ""
-      local custom_sep
-      read -r custom_sep
-      if [[ -z "$custom_sep" ]]; then
-        warn "Empty input, using space."
-        CFG_SEPARATOR="space"
-      else
-        CFG_SEPARATOR="$custom_sep"
-        CFG_SEPARATOR_CUSTOM="$custom_sep"
-      fi
-      ;;
-    *) warn "Invalid choice, using space."; CFG_SEPARATOR="space" ;;
-  esac
-
-  success "Separator: $CFG_SEPARATOR"
+preset_preview_rainbow() {
+  printf "       "
+  printf "\033[38;2;17;17;27;48;2;137;180;250m  \033[0m"
+  printf "\033[38;2;137;180;250;48;2;203;166;247m\033[0m"
+  printf "\033[48;2;203;166;247m\033[38;2;17;17;27m user \033[0m"
+  printf "\033[38;2;203;166;247;48;2;116;199;236m\033[0m"
+  printf "\033[48;2;116;199;236m\033[38;2;17;17;27m ~/dev \033[0m"
+  printf "\033[38;2;116;199;236;48;2;148;226;213m\033[0m"
+  printf "\033[48;2;148;226;213m\033[38;2;17;17;27m  main \033[0m"
+  printf "\033[38;2;148;226;213m\033[0m"
+  printf "    "
+  printf "\033[38;2;249;226;175m\033[48;2;249;226;175m\033[38;2;17;17;27m  22.1 \033[0m"
+  printf "\033[38;2;166;227;161m\033[48;2;166;227;161m\033[38;2;17;17;27m  4s \033[0m\033[0m"
   printf "\n"
+  printf "       ${CLR_GREEN}>${CLR_RESET} \n"
 }
 
-# ---------------------------------------------------------------------------
-# Wizard: Optional segments
-# ---------------------------------------------------------------------------
-
-wizard_segments() {
-  # Parallel arrays: names, config variable suffixes, and current toggle state
-  # Note: seg_labels and seg_state are read/written by render_segment_list and toggle_segments
-  local -a seg_labels=( "Time display" "Python virtualenv" "Python version"
-    "Node.js version" "Rust version" "Go version" "Ruby version" "Java version"
-    "PHP version" "Kubernetes context" "Background jobs" "Execution time" )
-  local -a seg_keys=( TIME VENV PYTHON NODE RUST GO RUBY JAVA PHP K8S JOBS EXEC_TIME )
-  local -a seg_state=( "$CFG_SHOW_TIME" "$CFG_SHOW_VENV" "$CFG_SHOW_PYTHON"
-    "$CFG_SHOW_NODE" "$CFG_SHOW_RUST" "$CFG_SHOW_GO" "$CFG_SHOW_RUBY"
-    "$CFG_SHOW_JAVA" "$CFG_SHOW_PHP" "$CFG_SHOW_K8S" "$CFG_SHOW_JOBS"
-    "$CFG_SHOW_EXEC_TIME" )
-
-  printf "${CLR_TEXT}${CLR_BOLD}  Toggle optional segments ${CLR_SUBTEXT}(comma-separated numbers, Enter to keep defaults):${CLR_RESET}\n"
-  render_segment_list
-
-  prompt "Toggle" ""
-  local input
-  read -r input
-
-  if [[ -n "$input" ]]; then
-    toggle_segments "$input" "${#seg_keys[@]}"
-  fi
-
-  # Write back to CFG_ variables
-  CFG_SHOW_TIME="${seg_state[0]}"
-  CFG_SHOW_VENV="${seg_state[1]}"
-  CFG_SHOW_PYTHON="${seg_state[2]}"
-  CFG_SHOW_NODE="${seg_state[3]}"
-  CFG_SHOW_RUST="${seg_state[4]}"
-  CFG_SHOW_GO="${seg_state[5]}"
-  CFG_SHOW_RUBY="${seg_state[6]}"
-  CFG_SHOW_JAVA="${seg_state[7]}"
-  CFG_SHOW_PHP="${seg_state[8]}"
-  CFG_SHOW_K8S="${seg_state[9]}"
-  CFG_SHOW_JOBS="${seg_state[10]}"
-  CFG_SHOW_EXEC_TIME="${seg_state[11]}"
-
-  success "Segments configured."
+preset_preview_p10k() {
+  printf "       "
+  printf "\033[38;2;17;17;27;48;2;137;180;250m  \033[0m"
+  printf "\033[38;2;137;180;250;48;2;137;180;250m\033[38;2;17;17;27m ~/projects \033[0m"
+  printf "\033[38;2;137;180;250;48;2;148;226;213m\033[0m"
+  printf "\033[48;2;148;226;213m\033[38;2;17;17;27m  main * \033[0m"
+  printf "\033[38;2;148;226;213m\033[0m"
+  printf "       "
+  printf "\033[38;2;69;71;90m\033[48;2;69;71;90m\033[38;2;205;214;244m v \033[0m"
+  printf "\033[38;2;69;71;90m\033[48;2;249;226;175m\033[0m"
+  printf "\033[48;2;249;226;175m\033[38;2;17;17;27m  3.12 \033[0m"
+  printf "\033[38;2;249;226;175m\033[0m"
   printf "\n"
-}
-
-render_segment_list() {
-  # Reads seg_labels and seg_state from the calling scope (wizard_segments)
-  local i
-  for i in "${!seg_labels[@]}"; do
-    local marker=" "
-    [[ "${seg_state[$i]}" == "true" ]] && marker="${CLR_GREEN}*${CLR_RESET}"
-    printf "    [%b] ${CLR_MAUVE}%2d)${CLR_TEXT} %s${CLR_RESET}\n" "$marker" "$((i + 1))" "${seg_labels[$i]}"
-  done
-}
-
-toggle_segments() {
-  # Modifies seg_state in the calling scope (wizard_segments)
-  local input="$1"
-  local count="$2"
-
-  IFS=',' read -ra nums <<< "$input"
-  for num in "${nums[@]}"; do
-    num="$(echo "$num" | tr -d '[:space:]')"
-    if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= count )); then
-      local idx=$((num - 1))
-      if [[ "${seg_state[idx]}" == "true" ]]; then
-        seg_state[idx]="false"
-      else
-        seg_state[idx]="true"
-      fi
-    else
-      warn "Ignoring invalid number: $num"
-    fi
-  done
+  printf "       ${CLR_GREEN}>${CLR_RESET} \n"
 }
 
 # ---------------------------------------------------------------------------
-# Wizard: Confirmation
+# Wizard Step 3: Confirmation with .zshrc preview
 # ---------------------------------------------------------------------------
 
 wizard_confirm() {
-  printf "${CLR_TEXT}${CLR_BOLD}  Configuration Summary${CLR_RESET}\n"
-  printf "${CLR_OVERLAY}  =====================${CLR_RESET}\n"
-  printf "    ${CLR_SUBTEXT}Flavor:${CLR_RESET}    %s\n" "$CFG_FLAVOR"
-  printf "    ${CLR_SUBTEXT}Layout:${CLR_RESET}    %s\n" "$CFG_LAYOUT"
-  printf "    ${CLR_SUBTEXT}Separator:${CLR_RESET} %s\n" "$CFG_SEPARATOR"
+  step "Step 3/3 - Review and confirm"
 
-  local enabled
-  enabled="$(collect_enabled_segments)"
-  if [[ -n "$enabled" ]]; then
-    printf "    ${CLR_SUBTEXT}Segments:${CLR_RESET}  %s\n" "$enabled"
+  local config_block
+  config_block="$(build_config_block)"
+
+  printf "  ${CLR_TEXT}${CLR_BOLD}Configuration:${CLR_RESET}\n"
+  printf "    ${CLR_SUBTEXT}Flavor:${CLR_RESET}  %s\n" "$CFG_FLAVOR"
+  printf "    ${CLR_SUBTEXT}Preset:${CLR_RESET}  %s\n" "$CFG_PRESET"
+  printf "\n"
+
+  printf "  ${CLR_TEXT}${CLR_BOLD}Files:${CLR_RESET}\n"
+  printf "    ${CLR_SUBTEXT}Theme:${CLR_RESET}   %s\n" "$THEME_DIR"
+  printf "    ${CLR_SUBTEXT}Config:${CLR_RESET}  %s\n" "$ZSHRC"
+  printf "\n"
+
+  if ! $KEEP_ZSHRC && [[ -f "$ZSHRC" ]]; then
+    # Detect current theme
+    local current_theme
+    current_theme="$(detect_current_theme)"
+    if [[ -n "$current_theme" && "$current_theme" != "catppuccin" ]]; then
+      printf "  ${CLR_TEXT}${CLR_BOLD}Changes to .zshrc:${CLR_RESET}\n"
+      printf "    ${CLR_RED}- ZSH_THEME=\"%s\"${CLR_RESET}\n" "$current_theme"
+      printf "    ${CLR_GREEN}+ ZSH_THEME=\"catppuccin\"${CLR_RESET}\n"
+      printf "\n"
+    fi
+
+    printf "  ${CLR_TEXT}${CLR_BOLD}Config block to add:${CLR_RESET}\n"
+    while IFS= read -r cline; do
+      printf "    ${CLR_GREEN}+ %s${CLR_RESET}\n" "$cline"
+    done <<< "$config_block"
+    printf "\n"
+
+    printf "  ${CLR_SUBTEXT}A backup of .zshrc will be created before any changes.${CLR_RESET}\n"
+    printf "\n"
+  elif $KEEP_ZSHRC; then
+    printf "  ${CLR_SUBTEXT}.zshrc will not be modified (--keep-zshrc).${CLR_RESET}\n"
+    printf "  ${CLR_SUBTEXT}You will need to set ZSH_THEME=\"catppuccin\" manually.${CLR_RESET}\n\n"
   fi
 
-  printf "\n"
-  printf "    ${CLR_BLUE}Theme dir:${CLR_RESET} %s\n" "$THEME_DIR"
-  printf "    ${CLR_BLUE}zshrc:${CLR_RESET}     %s\n" "$ZSHRC"
-  printf "\n"
-
-  prompt "Proceed with installation? (Y/n)" "Y"
-  local answer
-  read -r answer
-  answer="${answer:-Y}"
-
-  case "$answer" in
-    [Yy]*) return 0 ;;
-    *)     warn "Aborted."; exit 0 ;;
-  esac
+  if ! ask_yn "Proceed with installation?" "y"; then
+    warn "Aborted."
+    exit 0
+  fi
 }
 
-collect_enabled_segments() {
-  # Echoes space-separated list of enabled segment names
-  local -a out=()
-  [[ "$CFG_SHOW_TIME" == "true" ]]      && out+=("time")
-  [[ "$CFG_SHOW_VENV" == "true" ]]      && out+=("venv")
-  [[ "$CFG_SHOW_PYTHON" == "true" ]]    && out+=("python")
-  [[ "$CFG_SHOW_NODE" == "true" ]]      && out+=("node")
-  [[ "$CFG_SHOW_RUST" == "true" ]]      && out+=("rust")
-  [[ "$CFG_SHOW_GO" == "true" ]]        && out+=("go")
-  [[ "$CFG_SHOW_RUBY" == "true" ]]      && out+=("ruby")
-  [[ "$CFG_SHOW_JAVA" == "true" ]]      && out+=("java")
-  [[ "$CFG_SHOW_PHP" == "true" ]]       && out+=("php")
-  [[ "$CFG_SHOW_K8S" == "true" ]]       && out+=("k8s")
-  [[ "$CFG_SHOW_JOBS" == "true" ]]      && out+=("jobs")
-  [[ "$CFG_SHOW_EXEC_TIME" == "true" ]] && out+=("exec_time")
-  [[ ${#out[@]} -gt 0 ]] && echo "${out[*]}"
+# Detect the current ZSH_THEME value from .zshrc
+detect_current_theme() {
+  if [[ ! -f "$ZSHRC" ]]; then
+    echo ""
+    return
+  fi
+  # Match: optional export, optional whitespace, ZSH_THEME=, quoted value
+  local line
+  line="$(grep -E '^[[:space:]]*(export[[:space:]]+)?ZSH_THEME=' "$ZSHRC" 2>/dev/null | tail -1)" || true
+  if [[ -n "$line" ]]; then
+    # Extract value between quotes
+    echo "$line" | sed -E 's/.*ZSH_THEME=["\x27]([^"\x27]*)["\x27].*/\1/'
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Config block generation
+# ---------------------------------------------------------------------------
+
+build_config_block() {
+  local block="# --- Catppuccin Config ---"
+
+  # Flavor
+  [[ "$CFG_FLAVOR" != "mocha" ]] && block+=$'\n'"CATPPUCCIN_FLAVOR=\"$CFG_FLAVOR\""
+
+  # Preset
+  [[ "$CFG_PRESET" != "none" ]] && block+=$'\n'"CATPPUCCIN_PRESET=\"$CFG_PRESET\""
+
+  block+=$'\n'"# --- End Catppuccin Config ---"
+  printf '%s' "$block"
 }
 
 # ---------------------------------------------------------------------------
@@ -488,11 +586,25 @@ do_install() {
 # ---------------------------------------------------------------------------
 
 patch_zshrc() {
-  local backup_path
-  backup_path="${ZSHRC}.catppuccin-backup.$(date +%s)"
+  if $KEEP_ZSHRC; then
+    info "Skipping .zshrc modification (--keep-zshrc)."
+    return 0
+  fi
 
-  info "Backing up .zshrc to $backup_path"
-  cp "$ZSHRC" "$backup_path"
+  if [[ ! -f "$ZSHRC" ]]; then
+    warn "No .zshrc found at $ZSHRC. Skipping .zshrc modification."
+    warn "Add ZSH_THEME=\"catppuccin\" to your .zshrc manually."
+    return 0
+  fi
+
+  # Backup
+  BACKUP_PATH="${ZSHRC}.pre-catppuccin"
+  if [[ -f "$BACKUP_PATH" ]]; then
+    # Don't overwrite existing backup - add timestamp
+    BACKUP_PATH="${ZSHRC}.pre-catppuccin.$(date +%Y%m%d_%H%M%S)"
+  fi
+  info "Backing up .zshrc to $BACKUP_PATH"
+  cp "$ZSHRC" "$BACKUP_PATH"
 
   local config_block
   config_block="$(build_config_block)"
@@ -500,49 +612,18 @@ patch_zshrc() {
   local tmpfile
   tmpfile="$(mktemp)"
 
+  # Remove any existing catppuccin config block
   remove_old_config_block "$ZSHRC" "$tmpfile"
+
+  # Replace ZSH_THEME and inject config
   inject_theme_and_config "$tmpfile" "$config_block"
 
   mv "$tmpfile" "$ZSHRC"
   success ".zshrc updated."
-
-  # Store for summary
-  BACKUP_PATH="$backup_path"
-}
-
-build_config_block() {
-  local block="# --- Catppuccin Config ---"
-
-  # Core - only non-defaults
-  [[ "$CFG_FLAVOR" != "mocha" ]]       && block+=$'\n'"CATPPUCCIN_FLAVOR=\"$CFG_FLAVOR\""
-  [[ "$CFG_LAYOUT" != "oneline" ]]     && block+=$'\n'"CATPPUCCIN_LAYOUT=\"$CFG_LAYOUT\""
-  if [[ -n "$CFG_SEPARATOR_CUSTOM" ]]; then
-    block+=$'\n'"CATPPUCCIN_SEPARATOR=\"$CFG_SEPARATOR_CUSTOM\""
-  elif [[ "$CFG_SEPARATOR" != "space" ]]; then
-    block+=$'\n'"CATPPUCCIN_SEPARATOR=\"$CFG_SEPARATOR\""
-  fi
-
-  # Segment toggles - only non-defaults
-  [[ "$CFG_SHOW_TIME" != "false" ]]      && block+=$'\n'"CATPPUCCIN_SHOW_TIME=\"$CFG_SHOW_TIME\""
-  [[ "$CFG_SHOW_VENV" != "true" ]]       && block+=$'\n'"CATPPUCCIN_SHOW_VENV=\"$CFG_SHOW_VENV\""
-  [[ "$CFG_SHOW_PYTHON" != "false" ]]    && block+=$'\n'"CATPPUCCIN_SHOW_PYTHON=\"$CFG_SHOW_PYTHON\""
-  [[ "$CFG_SHOW_NODE" != "false" ]]      && block+=$'\n'"CATPPUCCIN_SHOW_NODE=\"$CFG_SHOW_NODE\""
-  [[ "$CFG_SHOW_RUST" != "false" ]]      && block+=$'\n'"CATPPUCCIN_SHOW_RUST=\"$CFG_SHOW_RUST\""
-  [[ "$CFG_SHOW_GO" != "false" ]]        && block+=$'\n'"CATPPUCCIN_SHOW_GO=\"$CFG_SHOW_GO\""
-  [[ "$CFG_SHOW_RUBY" != "false" ]]      && block+=$'\n'"CATPPUCCIN_SHOW_RUBY=\"$CFG_SHOW_RUBY\""
-  [[ "$CFG_SHOW_JAVA" != "false" ]]      && block+=$'\n'"CATPPUCCIN_SHOW_JAVA=\"$CFG_SHOW_JAVA\""
-  [[ "$CFG_SHOW_PHP" != "false" ]]       && block+=$'\n'"CATPPUCCIN_SHOW_PHP=\"$CFG_SHOW_PHP\""
-  [[ "$CFG_SHOW_K8S" != "false" ]]       && block+=$'\n'"CATPPUCCIN_SHOW_K8S=\"$CFG_SHOW_K8S\""
-  [[ "$CFG_SHOW_JOBS" != "false" ]]      && block+=$'\n'"CATPPUCCIN_SHOW_JOBS=\"$CFG_SHOW_JOBS\""
-  [[ "$CFG_SHOW_EXEC_TIME" != "false" ]] && block+=$'\n'"CATPPUCCIN_SHOW_EXEC_TIME=\"$CFG_SHOW_EXEC_TIME\""
-
-  block+=$'\n'"# --- End Catppuccin Config ---"
-  printf '%s' "$block"
 }
 
 remove_old_config_block() {
   local src="$1" dest="$2"
-  # Strip any existing config block (inclusive of markers)
   awk '
     /^# --- Catppuccin Config ---$/ { skip=1; next }
     /^# --- End Catppuccin Config ---$/ { skip=0; next }
@@ -556,12 +637,13 @@ inject_theme_and_config() {
   tmpfile="$(mktemp)"
 
   local injected=false
+  local theme_replaced=false
 
-  # Replace ZSH_THEME and inject config block before `source $ZSH/oh-my-zsh.sh`
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Replace any existing ZSH_THEME= line
-    if [[ "$line" =~ ^[[:space:]]*ZSH_THEME= ]]; then
-      printf '%s\n' 'ZSH_THEME="catppuccin"' >> "$tmpfile"
+    # Replace any existing ZSH_THEME= line (handles: export ZSH_THEME=, ZSH_THEME=, etc.)
+    if [[ "$line" =~ ^[[:space:]]*(export[[:space:]]+)?ZSH_THEME= ]]; then
+      printf 'ZSH_THEME="catppuccin"\n' >> "$tmpfile"
+      theme_replaced=true
       continue
     fi
 
@@ -573,6 +655,22 @@ inject_theme_and_config() {
 
     printf '%s\n' "$line" >> "$tmpfile"
   done < "$file"
+
+  # If we never found a ZSH_THEME line, add one before the source line
+  if ! $theme_replaced; then
+    local tmpfile2
+    tmpfile2="$(mktemp)"
+    local added=false
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      if ! $added && [[ "$line" =~ source[[:space:]].*oh-my-zsh\.sh ]]; then
+        printf 'ZSH_THEME="catppuccin"\n' >> "$tmpfile2"
+        added=true
+      fi
+      printf '%s\n' "$line" >> "$tmpfile2"
+    done < "$tmpfile"
+    rm -f "$tmpfile"
+    tmpfile="$tmpfile2"
+  fi
 
   # If we never found the source line, append the config block at the end
   if ! $injected; then
@@ -588,27 +686,24 @@ inject_theme_and_config() {
 
 read_env_config() {
   CFG_FLAVOR="${CATPPUCCIN_FLAVOR:-mocha}"
-  CFG_LAYOUT="${CATPPUCCIN_LAYOUT:-oneline}"
-  CFG_SEPARATOR="${CATPPUCCIN_SEPARATOR:-space}"
+  CFG_PRESET="${CATPPUCCIN_PRESET:-none}"
 
-  # Detect custom separator (not a known preset)
-  case "$CFG_SEPARATOR" in
-    space|arrow|bar|dot|powerline|chevron|round|slash) ;;
-    *) CFG_SEPARATOR_CUSTOM="$CFG_SEPARATOR" ;;
+  # Validate flavor
+  case "$CFG_FLAVOR" in
+    mocha|frappe|macchiato|latte) ;;
+    *) warn "Unknown flavor '$CFG_FLAVOR', using mocha."; CFG_FLAVOR="mocha" ;;
   esac
 
-  CFG_SHOW_TIME="${CATPPUCCIN_SHOW_TIME:-false}"
-  CFG_SHOW_VENV="${CATPPUCCIN_SHOW_VENV:-true}"
-  CFG_SHOW_PYTHON="${CATPPUCCIN_SHOW_PYTHON:-false}"
-  CFG_SHOW_NODE="${CATPPUCCIN_SHOW_NODE:-false}"
-  CFG_SHOW_RUST="${CATPPUCCIN_SHOW_RUST:-false}"
-  CFG_SHOW_GO="${CATPPUCCIN_SHOW_GO:-false}"
-  CFG_SHOW_RUBY="${CATPPUCCIN_SHOW_RUBY:-false}"
-  CFG_SHOW_JAVA="${CATPPUCCIN_SHOW_JAVA:-false}"
-  CFG_SHOW_PHP="${CATPPUCCIN_SHOW_PHP:-false}"
-  CFG_SHOW_K8S="${CATPPUCCIN_SHOW_K8S:-false}"
-  CFG_SHOW_JOBS="${CATPPUCCIN_SHOW_JOBS:-false}"
-  CFG_SHOW_EXEC_TIME="${CATPPUCCIN_SHOW_EXEC_TIME:-false}"
+  # Validate preset
+  case "$CFG_PRESET" in
+    none|minimal|classic|powerline|rainbow|p10k) ;;
+    *) warn "Unknown preset '$CFG_PRESET', using none."; CFG_PRESET="none" ;;
+  esac
+
+  # Support KEEP_ZSHRC from environment
+  if [[ "${KEEP_ZSHRC:-}" == "yes" ]]; then
+    KEEP_ZSHRC=true
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -629,13 +724,17 @@ do_uninstall() {
   fi
 
   if ! $NON_INTERACTIVE; then
-    prompt "Remove Catppuccin theme? (y/N)" "N"
-    local answer
-    read -r answer
-    case "${answer:-N}" in
-      [Yy]*) ;;
-      *)     warn "Aborted."; exit 0 ;;
-    esac
+    printf "  ${CLR_TEXT}This will:${CLR_RESET}\n"
+    [[ -d "$THEME_DIR" ]]  && printf "    ${CLR_RED}- Remove ${THEME_DIR}${CLR_RESET}\n"
+    [[ -L "$symlink_path" ]] && printf "    ${CLR_RED}- Remove symlink ${symlink_path}${CLR_RESET}\n"
+    [[ -f "$ZSHRC" ]] && printf "    ${CLR_RED}- Remove Catppuccin config from .zshrc${CLR_RESET}\n"
+    [[ -f "$ZSHRC" ]] && printf "    ${CLR_YELLOW}- Reset ZSH_THEME to \"robbyrussell\"${CLR_RESET}\n"
+    printf "\n"
+
+    if ! ask_yn "Remove Catppuccin theme?" "n"; then
+      warn "Aborted."
+      exit 0
+    fi
   fi
 
   uninstall_theme_files "$symlink_path"
@@ -644,20 +743,20 @@ do_uninstall() {
 
   printf "\n"
   success "Catppuccin has been removed."
-  info "Run: source ~/.zshrc"
+  info "Run: ${CLR_TEAL}source ~/.zshrc${CLR_RESET}"
 }
 
 uninstall_theme_files() {
   local symlink_path="$1"
 
   if [[ -d "$THEME_DIR" ]]; then
-    info "Removing theme directory: $THEME_DIR"
+    info "Removing theme directory..."
     rm -rf "$THEME_DIR"
     success "Theme directory removed."
   fi
 
   if [[ -L "$symlink_path" ]]; then
-    info "Removing symlink: $symlink_path"
+    info "Removing symlink..."
     rm -f "$symlink_path"
     success "Symlink removed."
   fi
@@ -669,7 +768,7 @@ uninstall_patch_zshrc() {
   fi
 
   local backup_path
-  backup_path="${ZSHRC}.catppuccin-uninstall.$(date +%s)"
+  backup_path="${ZSHRC}.pre-catppuccin-uninstall.$(date +%Y%m%d_%H%M%S)"
   cp "$ZSHRC" "$backup_path"
   info "Backup saved: $backup_path"
 
@@ -679,12 +778,12 @@ uninstall_patch_zshrc() {
   # Remove config block
   remove_old_config_block "$ZSHRC" "$tmpfile"
 
-  # Reset ZSH_THEME to default
+  # Reset ZSH_THEME
   local tmpfile2
   tmpfile2="$(mktemp)"
   while IFS= read -r line || [[ -n "$line" ]]; do
-    if [[ "$line" =~ ^[[:space:]]*ZSH_THEME=\"catppuccin\" ]]; then
-      printf '%s\n' 'ZSH_THEME="robbyrussell"' >> "$tmpfile2"
+    if [[ "$line" =~ ^[[:space:]]*(export[[:space:]]+)?ZSH_THEME=\"catppuccin\" ]]; then
+      printf 'ZSH_THEME="robbyrussell"\n' >> "$tmpfile2"
     else
       printf '%s\n' "$line" >> "$tmpfile2"
     fi
@@ -700,10 +799,10 @@ offer_backup_restore() {
     return 0
   fi
 
-  # Find most recent catppuccin backup
+  # Find the pre-catppuccin backup
   local latest_backup=""
   local candidate
-  for candidate in "${ZSHRC}.catppuccin-backup."*; do
+  for candidate in "${ZSHRC}.pre-catppuccin"*; do
     [[ -f "$candidate" ]] && latest_backup="$candidate"
   done
 
@@ -712,17 +811,13 @@ offer_backup_restore() {
   fi
 
   printf "\n"
-  info "Found installation backup: $latest_backup"
-  prompt "Restore .zshrc from this backup? (y/N)" "N"
-  local answer
-  read -r answer
-  case "${answer:-N}" in
-    [Yy]*)
-      cp "$latest_backup" "$ZSHRC"
-      success "Restored .zshrc from backup."
-      ;;
-    *) info "Keeping current .zshrc." ;;
-  esac
+  info "Found pre-installation backup: $latest_backup"
+  if ask_yn "Restore .zshrc from this backup?" "n"; then
+    cp "$latest_backup" "$ZSHRC"
+    success "Restored .zshrc from backup."
+  else
+    info "Keeping current .zshrc."
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -731,27 +826,34 @@ offer_backup_restore() {
 
 print_summary() {
   printf "\n"
-  printf "${CLR_GREEN}${CLR_BOLD}"
-  printf "  Installation complete!\n"
-  printf "${CLR_RESET}\n"
-
-  printf "    ${CLR_SUBTEXT}Theme:${CLR_RESET}     catppuccin (%s)\n" "$CFG_FLAVOR"
-  printf "    ${CLR_SUBTEXT}Layout:${CLR_RESET}    %s\n" "$CFG_LAYOUT"
-  printf "    ${CLR_SUBTEXT}Separator:${CLR_RESET} %s\n" "$CFG_SEPARATOR"
-  printf "    ${CLR_SUBTEXT}Installed:${CLR_RESET} %s\n" "$THEME_DIR"
+  printf "  ${CLR_GREEN}${CLR_BOLD}Installation complete!${CLR_RESET}\n"
+  printf "\n"
+  printf "    ${CLR_SUBTEXT}Flavor:${CLR_RESET}    ${CLR_TEXT}%s${CLR_RESET}\n" "$CFG_FLAVOR"
+  if [[ "$CFG_PRESET" != "none" ]]; then
+    printf "    ${CLR_SUBTEXT}Preset:${CLR_RESET}    ${CLR_TEXT}%s${CLR_RESET}\n" "$CFG_PRESET"
+  fi
+  printf "    ${CLR_SUBTEXT}Installed:${CLR_RESET} ${CLR_TEXT}%s${CLR_RESET}\n" "$THEME_DIR"
 
   if [[ -n "${BACKUP_PATH:-}" ]]; then
-    printf "    ${CLR_SUBTEXT}Backup:${CLR_RESET}    %s\n" "$BACKUP_PATH"
+    printf "    ${CLR_SUBTEXT}Backup:${CLR_RESET}    ${CLR_TEXT}%s${CLR_RESET}\n" "$BACKUP_PATH"
   fi
 
   printf "\n"
-  printf "  ${CLR_TEXT}To activate, run:${CLR_RESET}\n"
+  printf "  ${CLR_TEXT}To activate:${CLR_RESET}\n"
   printf "    ${CLR_TEAL}source ~/.zshrc${CLR_RESET}\n"
   printf "\n"
-  printf "  ${CLR_TEXT}To uninstall later:${CLR_RESET}\n"
-  printf "    ${CLR_TEAL}bash %s --uninstall${CLR_RESET}\n" "$THEME_DIR/install.sh"
-  printf "  ${CLR_DIM}or${CLR_RESET}\n"
-  printf "    ${CLR_TEAL}sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)\" -- --uninstall${CLR_RESET}\n"
+
+  if $KEEP_ZSHRC; then
+    printf "  ${CLR_YELLOW}Remember to add to your .zshrc:${CLR_RESET}\n"
+    printf "    ${CLR_TEAL}ZSH_THEME=\"catppuccin\"${CLR_RESET}\n"
+    if [[ "$CFG_PRESET" != "none" ]]; then
+      printf "    ${CLR_TEAL}CATPPUCCIN_PRESET=\"%s\"${CLR_RESET}\n" "$CFG_PRESET"
+    fi
+    printf "\n"
+  fi
+
+  printf "  ${CLR_SUBTEXT}Customize further:${CLR_RESET} ${CLR_TEXT}See README.md or edit .zshrc${CLR_RESET}\n"
+  printf "  ${CLR_SUBTEXT}Uninstall:${CLR_RESET}         ${CLR_TEXT}bash %s --uninstall${CLR_RESET}\n" "$THEME_DIR/install.sh"
   printf "\n"
 }
 
@@ -760,6 +862,7 @@ print_summary() {
 # ---------------------------------------------------------------------------
 
 main() {
+  setup_colors
   parse_args "$@"
 
   if $DO_HELP; then
@@ -777,13 +880,11 @@ main() {
 
   if $NON_INTERACTIVE; then
     read_env_config
-    info "Non-interactive install with flavor=$CFG_FLAVOR layout=$CFG_LAYOUT separator=$CFG_SEPARATOR"
+    info "Non-interactive install: flavor=$CFG_FLAVOR preset=$CFG_PRESET"
   else
     wizard_welcome
     wizard_flavor
-    wizard_layout
-    wizard_separator
-    wizard_segments
+    wizard_preset
     wizard_confirm
   fi
 
