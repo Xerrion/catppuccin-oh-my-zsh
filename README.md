@@ -34,6 +34,11 @@
 <img src="assets/mocha.webp"/>
 </details>
 
+## Prerequisites
+
+- [Oh My Zsh](https://ohmyz.sh/) installed
+- A [Nerd Font](https://www.nerdfonts.com/) installed and configured in your terminal (required for segment icons)
+
 ## Installation
 
 ### Quick Install (Recommended)

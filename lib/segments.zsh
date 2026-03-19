@@ -52,18 +52,18 @@ _ctp_segment_git() {
   [[ "$CATPPUCCIN_SHOW_GIT" != "true" ]] && return
 
   # Set oh-my-zsh git prompt variables using our color system
-  ZSH_THEME_GIT_PROMPT_PREFIX="$(_ctp_element_fg "GIT_BRANCH")("
+  ZSH_THEME_GIT_PROMPT_PREFIX="$(_ctp_element_fg "GIT_BRANCH") ("
   ZSH_THEME_GIT_PROMPT_SUFFIX="%f"
-  ZSH_THEME_GIT_PROMPT_DIRTY="$(_ctp_element_fg "GIT_BRANCH")) $(_ctp_element_fg "GIT_DIRTY")%1{✗%}%f"
-  ZSH_THEME_GIT_PROMPT_CLEAN="$(_ctp_element_fg "GIT_BRANCH")) $(_ctp_element_fg "GIT_CLEAN")%1{✔%}%f"
+  ZSH_THEME_GIT_PROMPT_DIRTY="$(_ctp_element_fg "GIT_BRANCH")) $(_ctp_element_fg "GIT_DIRTY")%1{%}%f"
+  ZSH_THEME_GIT_PROMPT_CLEAN="$(_ctp_element_fg "GIT_BRANCH")) $(_ctp_element_fg "GIT_CLEAN")%1{%}%f"
 
   if [[ "$CATPPUCCIN_GIT_SHOW_AHEAD_BEHIND" == "true" ]]; then
-    ZSH_THEME_GIT_PROMPT_AHEAD="%1{⇡%}"
-    ZSH_THEME_GIT_PROMPT_BEHIND="%1{⇣%}"
+    ZSH_THEME_GIT_PROMPT_AHEAD="%1{%}"
+    ZSH_THEME_GIT_PROMPT_BEHIND="%1{%}"
   fi
 
   if [[ "$CATPPUCCIN_GIT_SHOW_STASH" == "true" ]]; then
-    ZSH_THEME_GIT_PROMPT_STASHED="%1{≡%}"
+    ZSH_THEME_GIT_PROMPT_STASHED="%1{%}"
   fi
 
   # git_prompt_info is evaluated at prompt render time via $()
@@ -104,7 +104,7 @@ _ctp_segment_python() {
   echo '$(
     if [[ -f pyproject.toml || -f setup.py || -f setup.cfg || -f Pipfile || -f requirements.txt || -f .python-version ]]; then
       local ver="${$(python3 --version 2>/dev/null)#Python }"
-      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "PYTHON")"'🐍${ver}%f"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "PYTHON")"' ${ver}%f"
     fi
   )'
 }
@@ -114,7 +114,7 @@ _ctp_segment_node() {
   echo '$(
     if [[ -f package.json || -f .nvmrc || -f .node-version ]]; then
       local ver="${$(node --version 2>/dev/null)#v}"
-      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "NODE")"'⬢${ver}%f"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "NODE")"' ${ver}%f"
     fi
   )'
 }
@@ -125,7 +125,7 @@ _ctp_segment_rust() {
     if [[ -f Cargo.toml || -f .rust-toolchain || -f .rust-toolchain.toml ]]; then
       local ver="${$(rustc --version 2>/dev/null)##rustc }"
       ver="${ver%% *}"
-      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "RUST")"'🦀${ver}%f"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "RUST")"' ${ver}%f"
     fi
   )'
 }
@@ -136,7 +136,7 @@ _ctp_segment_go() {
     if [[ -f go.mod || -f go.sum ]]; then
       local ver="${$(go version 2>/dev/null)##go version go}"
       ver="${ver%% *}"
-      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "GO")"'🐹${ver}%f"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "GO")"' ${ver}%f"
     fi
   )'
 }
@@ -147,7 +147,7 @@ _ctp_segment_ruby() {
     if [[ -f Gemfile || -f .ruby-version || -f Rakefile ]]; then
       local ver="${$(ruby --version 2>/dev/null)##ruby }"
       ver="${ver%% *}"
-      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "RUBY")"'💎${ver}%f"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "RUBY")"' ${ver}%f"
     fi
   )'
 }
@@ -165,7 +165,7 @@ _ctp_segment_java() {
       if [[ -z "$ver" ]]; then
         ver="${$(java --version 2>/dev/null | head -1)##* }"
       fi
-      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "JAVA")"'☕${ver}%f"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "JAVA")"' ${ver}%f"
     fi
   )'
 }
@@ -176,7 +176,7 @@ _ctp_segment_php() {
     if [[ -f composer.json || -f .php-version || -f artisan ]]; then
       local ver="${$(php --version 2>/dev/null | head -1)##PHP }"
       ver="${ver%% *}"
-      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "PHP")"'🐘${ver}%f"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "PHP")"' ${ver}%f"
     fi
   )'
 }
@@ -187,7 +187,7 @@ _ctp_segment_k8s() {
   [[ "$CATPPUCCIN_SHOW_K8S" != "true" ]] && return
   echo '$(
     local ctx="$(kubectl config current-context 2>/dev/null)"
-    [[ -n "$ctx" ]] && echo "'"$(_ctp_element_fg "K8S")"'⎈${ctx}%f"
+    [[ -n "$ctx" ]] && echo "'"$(_ctp_element_fg "K8S")"'󱃾 ${ctx}%f"
   )'
 }
 
@@ -196,7 +196,7 @@ _ctp_segment_jobs() {
   # Use runtime evaluation so empty-check works in _ctp_render_prompt
   echo '$(
     local jcount=${#jobstates}
-    (( jcount > 0 )) && echo "'"$(_ctp_element_fg "JOBS")"'%1{⚙%}${jcount}%f"
+    (( jcount > 0 )) && echo "'"$(_ctp_element_fg "JOBS")"'%1{%}${jcount}%f"
   )'
 }
 
@@ -216,7 +216,7 @@ _ctp_segment_exec_time() {
       else
         display="${dur}s"
       fi
-      echo "'"$(_ctp_element_fg "EXEC_TIME")"'⏱${display}%f"
+      echo "'"$(_ctp_element_fg "EXEC_TIME")"' ${display}%f"
     fi
   )'
 }
