@@ -21,11 +21,9 @@ check-deps:
 		exit 1; \
 	fi
 
-# Generate all flavor screenshots (png + webp)
+# Generate all flavor screenshots (png + webp), then clean up PNGs
 screenshots: check-deps $(SCREENSHOTS_WEBP)
-
-# PNGs are intermediate build artifacts — Make deletes them after producing WebPs
-.INTERMEDIATE: $(SCREENSHOTS_PNG)
+	rm -f $(SCREENSHOTS_PNG)
 
 assets/%.png: tapes/%.tape tapes/config.tape
 	vhs $<
@@ -37,6 +35,7 @@ assets/%.webp: assets/%.png
 catwalk: check-deps $(SCREENSHOTS_WEBP)
 	catwalk assets/latte.webp assets/frappe.webp assets/macchiato.webp assets/mocha.webp \
 		--ext webp --output assets/catwalk.webp
+	rm -f $(SCREENSHOTS_PNG)
 
 # Remove generated files
 clean:
