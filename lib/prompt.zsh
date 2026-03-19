@@ -26,10 +26,12 @@ if [[ "$CATPPUCCIN_SHOW_EXEC_TIME" == "true" ]]; then
   add-zsh-hook precmd _ctp_precmd_exec_time
 fi
 
-# --- Prompt Builder ---
+# --- Prompt Templates (populated once at source time) ---
+typeset -ga _CTP_PROMPT_TEMPLATES=()
+
+# --- Build: collect segment templates (runs once) ---
 _ctp_build_prompt() {
-  local sep="$(_ctp_element_fg "SEPARATOR")$(_ctp_resolve_separator)%f"
-  local segments=()
+  _CTP_PROMPT_TEMPLATES=()
   local segment_names=(${(s: :)CATPPUCCIN_SEGMENTS})
   local name output
 
@@ -41,7 +43,23 @@ _ctp_build_prompt() {
 
     output="$(_ctp_segment_${name})"
     if [[ -n "$output" ]]; then
-      segments+=("$output")
+      _CTP_PROMPT_TEMPLATES+=("$output")
+    fi
+  done
+}
+
+# --- Render: evaluate templates and join non-empty (runs every precmd) ---
+_ctp_render_prompt() {
+  local sep="$(_ctp_element_fg "SEPARATOR")$(_ctp_resolve_separator)%f"
+  local segments=()
+  local tpl rendered
+
+  for tpl in "${_CTP_PROMPT_TEMPLATES[@]}"; do
+    # Evaluate: run $() command substitutions embedded in the template
+    rendered="${(e)tpl}"
+    # After evaluation, empty runtime segments become empty strings
+    if [[ -n "$rendered" ]]; then
+      segments+=("$rendered")
     fi
   done
 
@@ -56,4 +74,8 @@ _ctp_build_prompt() {
   fi
 }
 
+# Build templates once, then render on every prompt
 _ctp_build_prompt
+
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _ctp_render_prompt

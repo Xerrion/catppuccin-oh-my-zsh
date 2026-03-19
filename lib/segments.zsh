@@ -193,8 +193,11 @@ _ctp_segment_k8s() {
 
 _ctp_segment_jobs() {
   [[ "$CATPPUCCIN_SHOW_JOBS" != "true" ]] && return
-  # %(1j.show.hide) - show only if there are 1+ background jobs
-  echo "%(1j.$(_ctp_element_fg "JOBS")%1{⚙%}%j%f.)"
+  # Use runtime evaluation so empty-check works in _ctp_render_prompt
+  echo '$(
+    local jcount=${#jobstates}
+    (( jcount > 0 )) && echo "'"$(_ctp_element_fg "JOBS")"'%1{⚙%}${jcount}%f"
+  )'
 }
 
 # --- Exec Time ---
