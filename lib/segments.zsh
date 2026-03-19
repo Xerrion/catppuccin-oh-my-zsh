@@ -1,0 +1,219 @@
+# Catppuccin for Oh My Zsh - Prompt Segments
+# Each segment function outputs a formatted prompt string or empty if disabled.
+# Segments use _ctp_element_fg/_ctp_element_color from colors.zsh for theming.
+
+# --- Arrow ---
+# Green arrow on success, red on error. Uses ZSH conditional: %(?.true.false)
+_ctp_segment_arrow() {
+  [[ "$CATPPUCCIN_SHOW_ARROW" != "true" ]] && return
+  echo "%(?.%F{$(_ctp_element_color "ARROW_OK")}.%F{$(_ctp_element_color "ARROW_ERR")})%1{➜%}%f"
+}
+
+# --- User ---
+_ctp_segment_user() {
+  [[ "$CATPPUCCIN_SHOW_USER" != "true" ]] && return
+  echo "$(_ctp_element_fg "USER")%n%f"
+}
+
+# --- Host ---
+# Three modes: never (return empty), always (show always), ssh (show only in SSH)
+_ctp_segment_host() {
+  case "$CATPPUCCIN_SHOW_HOST" in
+    never) return ;;
+    always) echo "$(_ctp_element_fg "HOST")[%m]%f" ;;
+    ssh)
+      # SSH_CONNECTION is only set inside SSH sessions, so this check at
+      # source time correctly reflects the session type for the shell lifetime.
+      if [[ -n "$SSH_CONNECTION" ]]; then
+        echo "$(_ctp_element_fg "HOST_SSH")[%m]%f"
+      fi
+      ;;
+  esac
+}
+
+# --- CWD ---
+# CATPPUCCIN_CWD_TRUNCATE controls depth: 0=full, 1=%1~ (tail), N=%N~
+_ctp_segment_cwd() {
+  [[ "$CATPPUCCIN_SHOW_CWD" != "true" ]] && return
+  local truncate="${CATPPUCCIN_CWD_TRUNCATE}"
+  local path_fmt
+  if [[ "$truncate" == "0" ]]; then
+    path_fmt="%~"  # full path with ~ substitution
+  else
+    path_fmt="%${truncate}~"  # show N trailing components
+  fi
+  echo "$(_ctp_element_fg "CWD")${path_fmt}%f"
+}
+
+# --- Git ---
+# Uses oh-my-zsh git_prompt_info. Configures ZSH_THEME_GIT_PROMPT_* vars.
+# Also supports ahead/behind and stash indicators.
+_ctp_segment_git() {
+  [[ "$CATPPUCCIN_SHOW_GIT" != "true" ]] && return
+
+  # Set oh-my-zsh git prompt variables using our color system
+  ZSH_THEME_GIT_PROMPT_PREFIX="$(_ctp_element_fg "GIT_BRANCH")("
+  ZSH_THEME_GIT_PROMPT_SUFFIX="%f"
+  ZSH_THEME_GIT_PROMPT_DIRTY="$(_ctp_element_fg "GIT_BRANCH")) $(_ctp_element_fg "GIT_DIRTY")%1{✗%}%f"
+  ZSH_THEME_GIT_PROMPT_CLEAN="$(_ctp_element_fg "GIT_BRANCH")) $(_ctp_element_fg "GIT_CLEAN")%1{✔%}%f"
+
+  if [[ "$CATPPUCCIN_GIT_SHOW_AHEAD_BEHIND" == "true" ]]; then
+    ZSH_THEME_GIT_PROMPT_AHEAD="%1{⇡%}"
+    ZSH_THEME_GIT_PROMPT_BEHIND="%1{⇣%}"
+  fi
+
+  if [[ "$CATPPUCCIN_GIT_SHOW_STASH" == "true" ]]; then
+    ZSH_THEME_GIT_PROMPT_STASHED="%1{≡%}"
+  fi
+
+  # git_prompt_info is evaluated at prompt render time via $()
+  echo '$(git_prompt_info)'
+}
+
+# --- Time ---
+_ctp_segment_time() {
+  [[ "$CATPPUCCIN_SHOW_TIME" != "true" ]] && return
+  local fmt
+  if [[ "$CATPPUCCIN_TIME_FORMAT" == "HH:MM:SS" ]]; then
+    fmt="%*"  # HH:MM:SS
+  else
+    fmt="%T"  # HH:MM
+  fi
+  echo "$(_ctp_element_fg "TIME")${fmt}%f"
+}
+
+# --- Python Virtualenv ---
+_ctp_segment_venv() {
+  [[ "$CATPPUCCIN_SHOW_VENV" != "true" ]] && return
+  # VIRTUAL_ENV / CONDA_DEFAULT_ENV are evaluated at prompt render time
+  echo '$(
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+      echo "'"$(_ctp_element_fg "VENV")"'(${VIRTUAL_ENV:t})%f"
+    elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+      echo "'"$(_ctp_element_fg "VENV")"'(${CONDA_DEFAULT_ENV})%f"
+    fi
+  )'
+}
+
+# --- Language version segments ---
+# Each checks for project marker files before running the version command.
+# They use $() prompt substitution for runtime evaluation.
+
+_ctp_segment_python() {
+  [[ "$CATPPUCCIN_SHOW_PYTHON" != "true" ]] && return
+  echo '$(
+    if [[ -f pyproject.toml || -f setup.py || -f setup.cfg || -f Pipfile || -f requirements.txt || -f .python-version ]]; then
+      local ver="${$(python3 --version 2>/dev/null)#Python }"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "PYTHON")"'🐍${ver}%f"
+    fi
+  )'
+}
+
+_ctp_segment_node() {
+  [[ "$CATPPUCCIN_SHOW_NODE" != "true" ]] && return
+  echo '$(
+    if [[ -f package.json || -f .nvmrc || -f .node-version ]]; then
+      local ver="${$(node --version 2>/dev/null)#v}"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "NODE")"'⬢${ver}%f"
+    fi
+  )'
+}
+
+_ctp_segment_rust() {
+  [[ "$CATPPUCCIN_SHOW_RUST" != "true" ]] && return
+  echo '$(
+    if [[ -f Cargo.toml || -f .rust-toolchain || -f .rust-toolchain.toml ]]; then
+      local ver="${$(rustc --version 2>/dev/null)##rustc }"
+      ver="${ver%% *}"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "RUST")"'🦀${ver}%f"
+    fi
+  )'
+}
+
+_ctp_segment_go() {
+  [[ "$CATPPUCCIN_SHOW_GO" != "true" ]] && return
+  echo '$(
+    if [[ -f go.mod || -f go.sum ]]; then
+      local ver="${$(go version 2>/dev/null)##go version go}"
+      ver="${ver%% *}"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "GO")"'🐹${ver}%f"
+    fi
+  )'
+}
+
+_ctp_segment_ruby() {
+  [[ "$CATPPUCCIN_SHOW_RUBY" != "true" ]] && return
+  echo '$(
+    if [[ -f Gemfile || -f .ruby-version || -f Rakefile ]]; then
+      local ver="${$(ruby --version 2>/dev/null)##ruby }"
+      ver="${ver%% *}"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "RUBY")"'💎${ver}%f"
+    fi
+  )'
+}
+
+_ctp_segment_java() {
+  [[ "$CATPPUCCIN_SHOW_JAVA" != "true" ]] && return
+  # Handles both old format (java -version -> "1.8.0_292") and
+  # new format (java --version -> openjdk 17.0.1 ...)
+  echo '$(
+    if [[ -f pom.xml || -f build.gradle || -f build.gradle.kts || -f .java-version ]]; then
+      local ver="$(java -version 2>&1 | head -1)"
+      ver="${ver##*\"}"
+      ver="${ver%%\"*}"
+      # Fallback for newer java --version output (unquoted)
+      if [[ -z "$ver" ]]; then
+        ver="${$(java --version 2>/dev/null | head -1)##* }"
+      fi
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "JAVA")"'☕${ver}%f"
+    fi
+  )'
+}
+
+_ctp_segment_php() {
+  [[ "$CATPPUCCIN_SHOW_PHP" != "true" ]] && return
+  echo '$(
+    if [[ -f composer.json || -f .php-version || -f artisan ]]; then
+      local ver="${$(php --version 2>/dev/null | head -1)##PHP }"
+      ver="${ver%% *}"
+      [[ -n "$ver" ]] && echo "'"$(_ctp_element_fg "PHP")"'🐘${ver}%f"
+    fi
+  )'
+}
+
+# --- Infrastructure ---
+
+_ctp_segment_k8s() {
+  [[ "$CATPPUCCIN_SHOW_K8S" != "true" ]] && return
+  echo '$(
+    local ctx="$(kubectl config current-context 2>/dev/null)"
+    [[ -n "$ctx" ]] && echo "'"$(_ctp_element_fg "K8S")"'⎈${ctx}%f"
+  )'
+}
+
+_ctp_segment_jobs() {
+  [[ "$CATPPUCCIN_SHOW_JOBS" != "true" ]] && return
+  # %(1j.show.hide) - show only if there are 1+ background jobs
+  echo "%(1j.$(_ctp_element_fg "JOBS")%1{⚙%}%j%f.)"
+}
+
+# --- Exec Time ---
+# Requires preexec/precmd hooks (set up in prompt.zsh).
+# This segment reads _CTP_EXEC_DURATION set by those hooks.
+_ctp_segment_exec_time() {
+  [[ "$CATPPUCCIN_SHOW_EXEC_TIME" != "true" ]] && return
+  echo '$(
+    if [[ -n "$_CTP_EXEC_DURATION" ]] && (( _CTP_EXEC_DURATION >= '"${CATPPUCCIN_EXEC_TIME_MIN}"' )); then
+      local dur="$_CTP_EXEC_DURATION"
+      local display=""
+      if (( dur >= 3600 )); then
+        display="$((dur / 3600))h$((dur % 3600 / 60))m"
+      elif (( dur >= 60 )); then
+        display="$((dur / 60))m$((dur % 60))s"
+      else
+        display="${dur}s"
+      fi
+      echo "'"$(_ctp_element_fg "EXEC_TIME")"'⏱${display}%f"
+    fi
+  )'
+}

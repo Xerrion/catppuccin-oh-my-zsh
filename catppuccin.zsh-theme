@@ -1,37 +1,19 @@
-# Customisation Options
-: ${CATPPUCCIN_SHOW_HOSTNAME:="never"} # never, always, ssh
+# Catppuccin for Oh My Zsh
+# https://github.com/Xerrion/catppuccin-oh-my-zsh
+#
+# Soothing pastel theme for Oh My Zsh.
+# See README.md for configuration options.
 
+local _ctp_dir="${0:A:h}"
 
-if [ "$CATPPUCCIN_FLAVOR" = "frappe" ]; then
-    source ${0:A:h}/catppuccin-flavors/catppuccin-frappe.zsh
-elif [ "$CATPPUCCIN_FLAVOR" = "latte" ]; then
-    source ${0:A:h}/catppuccin-flavors/catppuccin-latte.zsh
-elif [ "$CATPPUCCIN_FLAVOR" = "macchiato" ]; then
-    source ${0:A:h}/catppuccin-flavors/catppuccin-macchiato.zsh
-else
-    source ${0:A:h}/catppuccin-flavors/catppuccin-mocha.zsh
-fi
+# Load configuration defaults (preserves user-set values)
+source "${_ctp_dir}/lib/config.zsh"
 
-PROMPT="%(?:%F{${catppuccin_green}}%1{➜%} :%F{${catppuccin_red}}%1{➜%} )"
+# Load color system and flavor palette
+source "${_ctp_dir}/lib/colors.zsh"
 
-if [ "$CATPPUCCIN_SHOW_HOSTNAME" = "ssh" ]; then
-    if [[ -n "$SSH_CONNECTION" ]]; then
-        PROMPT+="%F{${catppuccin_mauve}}[%m] "
-    fi
-elif [ "$CATPPUCCIN_SHOW_HOSTNAME" = "always" ]; then
-    PROMPT+="%F{${catppuccin_sky}}[%m] "
-fi
+# Load segment functions
+source "${_ctp_dir}/lib/segments.zsh"
 
-if [ "$CATPPUCCIN_SHOW_TIME" = true ];
-then
-  PROMPT+="%F{${catppuccin_mauve}}%T%  "
-fi
-
-PROMPT+="%F{${catppuccin_pink}}%n%  "
-PROMPT+="%F{${catppuccin_blue}}%c%{$reset_color%}"
-PROMPT+=' $(git_prompt_info)'
-
-ZSH_THEME_GIT_PROMPT_PREFIX="%F{${catppuccin_teal}}("
-ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%} "
-ZSH_THEME_GIT_PROMPT_DIRTY="%F{${catppuccin_teal}}) %F{${catppuccin_yellow}}%1{✗%}"
-ZSH_THEME_GIT_PROMPT_CLEAN="%F{${catppuccin_teal}}) %F{${catppuccin_green}}%1{✔%}"
+# Build and set PROMPT
+source "${_ctp_dir}/lib/prompt.zsh"
