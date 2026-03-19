@@ -1,13 +1,16 @@
 Source tapes/config.tape
 
 Set Theme "Catppuccin Macchiato"
-Output assets/macchiato.webp
 
-Sleep 500ms
-
-Type "cd ~/Projects/catppuccin-oh-my-zsh"
+Hide
+Type "export CTP_FLAVOR=macchiato"
 Enter
-Sleep 1s
+Type "cd ~/Projects/catppuccin-zsh"
+Enter
+Type "source catppuccin.zsh-theme"
+Enter
+Sleep 2s
+Show
 
 Type "git status"
 Enter
@@ -15,4 +18,7 @@ Sleep 1s
 
 Type "ls -la"
 Enter
-Sleep 2s
+Sleep 1s
+
+Screenshot assets/macchiato.png
+Sleep 500ms
