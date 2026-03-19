@@ -724,8 +724,9 @@ wizard_separator() {
 # ---------------------------------------------------------------------------
 
 wizard_style() {
-  local total="$(_wizard_total_steps)"
-  step "Step 3/${total} - Choose a style"
+  # Note: total steps depend on the style choice made here, so we can't show
+  # the denominator yet. Steps 4+ will display "N/total" once style is known.
+  step "Step 3 - Choose a style"
 
   printf "  %sThis controls how segments are rendered.%s\n\n" "$CLR_SUBTEXT" "$CLR_RESET"
 
@@ -918,7 +919,7 @@ wizard_segments() {
         "$CLR_MAUVE" "$k" "$CLR_RESET" \
         "$state_clr" "$state_icon" "$CLR_RESET" \
         "$label" "$CLR_SUBTEXT" "$desc" "$CLR_RESET"
-      (( i++ ))
+      (( i += 1 ))
     done
 
     printf "\n  %s%sRight prompt (RPROMPT):%s\n" "$CLR_TEXT" "$CLR_BOLD" "$CLR_RESET"
@@ -941,7 +942,7 @@ wizard_segments() {
         "$CLR_MAUVE" "$k" "$CLR_RESET" \
         "$state_clr" "$state_icon" "$CLR_RESET" \
         "$label" "$CLR_SUBTEXT" "$desc" "$CLR_RESET"
-      (( i++ ))
+      (( i += 1 ))
     done
     printf "\n"
   }
@@ -991,7 +992,7 @@ wizard_segments() {
         found=true
         break
       fi
-      (( ki++ ))
+      (( ki += 1 ))
     done
 
     if ! $found; then
@@ -1006,7 +1007,7 @@ wizard_segments() {
           found=true
           break
         fi
-        (( ki++ ))
+        (( ki += 1 ))
       done
     fi
 
