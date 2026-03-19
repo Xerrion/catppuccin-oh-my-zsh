@@ -1,6 +1,6 @@
 Source tapes/config.tape
 
-Set Theme "Catppuccin Frappé"
+Set Theme "Catppuccin Frappe"
 Output assets/frappe.webp
 
 Sleep 500ms
