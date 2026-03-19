@@ -225,8 +225,10 @@ _ctp_render_prompt() {
     if [[ "$CATPPUCCIN_SHOW_PROMPT_CHAR" == "true" ]]; then
       line2="$(_ctp_segment_prompt_char) "
     else
-      # Fallback: simple colored arrow
-      line2="%F{$(_ctp_element_color "ARROW_OK")}%1{❯%}%f "
+      # Fallback: simple colored arrow with error-aware ternary
+      local _ok_hex="$(_ctp_element_color "ARROW_OK")"
+      local _err_hex="$(_ctp_element_color "ARROW_ERR")"
+      line2="%(?.%F{${_ok_hex}}.%F{${_err_hex}})%1{❯%}%f "
     fi
     PROMPT="${left_joined}
 ${line2}"
@@ -246,12 +248,11 @@ ${line2}"
 if [[ "$CATPPUCCIN_TRANSIENT_PROMPT" == "true" ]]; then
   # Hook into zle accept-line to trigger transient prompt
   _ctp_zle_accept_line() {
-    _CTP_TRANSIENT_ACTIVE=1
-    # Store the buffer before accepting
-    local buf="$BUFFER"
-    # Set transient prompt
+    # Set transient prompt with error-aware coloring
     local char="${CATPPUCCIN_PROMPT_CHAR:-❯}"
-    PROMPT="%F{$(_ctp_element_color "PROMPT_CHAR_OK")}%1{${char}%}%f "
+    local _ok_hex="$(_ctp_element_color "PROMPT_CHAR_OK")"
+    local _err_hex="$(_ctp_element_color "PROMPT_CHAR_ERR")"
+    PROMPT="%(?.%F{${_ok_hex}}.%F{${_err_hex}})%1{${char}%}%f "
     RPROMPT=""
     zle reset-prompt
     # Restore full prompt config (will be rendered by precmd for next prompt)

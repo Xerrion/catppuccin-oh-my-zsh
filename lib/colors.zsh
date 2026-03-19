@@ -43,14 +43,6 @@ _ctp_element_fg() {
   echo "%F{$(_ctp_element_color "$1")}"
 }
 
-# Resolve a CATPPUCCIN_BG_* variable to its hex color.
-# Usage: _ctp_bg_color "CWD" -> "#89b4fa"
-_ctp_bg_color() {
-  local config_var="CATPPUCCIN_BG_${1}"
-  local color_name="${(P)config_var}"
-  _ctp_color "$color_name"
-}
-
 # Determine a high-contrast foreground for a given background color name.
 # In dark flavors, accent backgrounds get dark fg (crust), neutral backgrounds get light fg (text).
 # In Latte (light flavor), the palette is inverted: crust is light and text is dark,
@@ -65,13 +57,14 @@ _ctp_contrast_fg() {
     dark_fg="crust"   # very dark in mocha/frappe/macchiato
     light_fg="text"   # light in mocha/frappe/macchiato
   fi
-  # Dark backgrounds: base, mantle, crust, surface0, surface1, surface2, overlay0, overlay1
+  # Dark/neutral backgrounds: use light foreground for contrast
+  # Light/accent backgrounds: use dark foreground for contrast
   case "$bg_name" in
-    base|mantle|crust|surface0|surface1|surface2|overlay0|overlay1)
+    base|mantle|crust|surface0|surface1|surface2|overlay0|overlay1|overlay2|subtext0|subtext1)
       echo "$(_ctp_color "$light_fg")"
       ;;
     *)
-      # Accent colors get the contrasting dark foreground
+      # Accent colors and 'text' get the contrasting dark foreground
       echo "$(_ctp_color "$dark_fg")"
       ;;
   esac

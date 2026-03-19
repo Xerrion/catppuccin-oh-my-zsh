@@ -88,6 +88,19 @@ abort_handler() {
 
 trap abort_handler INT
 
+# Safe file replacement: copies tmpfile over target, preserving original permissions,
+# then removes the tmpfile.
+safe_replace() {
+  local src="$1" dst="$2"
+  if [[ -f "$dst" ]]; then
+    # Preserve original permissions by copying content, then removing temp
+    cp "$src" "$dst"
+    rm -f "$src"
+  else
+    mv "$src" "$dst"
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Input helpers
 # ---------------------------------------------------------------------------
@@ -156,6 +169,9 @@ ask_yn() {
 # Globals (set by wizard or CLI flags)
 # ---------------------------------------------------------------------------
 
+# Save incoming env vars before we overwrite them with script defaults
+_ENV_KEEP_ZSHRC="${KEEP_ZSHRC:-}"
+
 NON_INTERACTIVE=false
 DO_UNINSTALL=false
 DO_HELP=false
@@ -169,9 +185,6 @@ CFG_PRESET="none"
 THEME_DIR=""
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
 BACKUP_PATH=""
-
-# Save incoming env vars before we overwrite them with script defaults
-_ENV_KEEP_ZSHRC="${KEEP_ZSHRC:-}"
 
 # ---------------------------------------------------------------------------
 # CLI argument parsing
@@ -621,7 +634,10 @@ do_install() {
     info "Cloning repository..."
     git clone --depth 1 "$REPO_URL" "$THEME_DIR" 2>&1 | while IFS= read -r line; do
       printf "    %s%s%s\n" "$CLR_DIM" "$line" "$CLR_RESET"
-    done
+    done || {
+      error "Failed to clone repository. Check your network connection and try again."
+      exit 1
+    }
     success "Repository cloned."
   fi
 
@@ -668,7 +684,7 @@ patch_zshrc() {
   # Replace ZSH_THEME and inject config
   inject_theme_and_config "$tmpfile" "$config_block"
 
-  mv "$tmpfile" "$ZSHRC"
+  safe_replace "$tmpfile" "$ZSHRC"
   success ".zshrc updated."
 }
 
@@ -727,7 +743,33 @@ inject_theme_and_config() {
     printf '\n%s\n' "$config_block" >> "$tmpfile"
   fi
 
-  mv "$tmpfile" "$file"
+  # If ZSH_THEME was never set (no existing line AND no source line to inject before),
+  # prepend it to the config block area at the end of the file
+  if ! $theme_replaced; then
+    local tmpfile3
+    tmpfile3="$(mktemp)"
+    # Check if ZSH_THEME="catppuccin" was already added by the second pass
+    if ! grep -q '^ZSH_THEME="catppuccin"' "$tmpfile" 2>/dev/null; then
+      # Add it just before the config block sentinel or at the end
+      local found_sentinel=false
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" == "# --- Catppuccin Theme Config ---" ]] && ! $found_sentinel; then
+          printf 'ZSH_THEME="catppuccin"\n\n' >> "$tmpfile3"
+          found_sentinel=true
+        fi
+        printf '%s\n' "$line" >> "$tmpfile3"
+      done < "$tmpfile"
+      if ! $found_sentinel; then
+        printf '\nZSH_THEME="catppuccin"\n' >> "$tmpfile3"
+      fi
+      rm -f "$tmpfile"
+      tmpfile="$tmpfile3"
+    else
+      rm -f "$tmpfile3"
+    fi
+  fi
+
+  safe_replace "$tmpfile" "$file"
 }
 
 # ---------------------------------------------------------------------------
@@ -840,7 +882,7 @@ uninstall_patch_zshrc() {
   done < "$tmpfile"
   rm -f "$tmpfile"
 
-  mv "$tmpfile2" "$ZSHRC"
+  safe_replace "$tmpfile2" "$ZSHRC"
   success "ZSH_THEME reset to robbyrussell."
 }
 
@@ -855,7 +897,7 @@ offer_backup_restore() {
   if [[ -f "${ZSHRC}.pre-catppuccin" ]]; then
     best_backup="${ZSHRC}.pre-catppuccin"
   else
-    for candidate in "${ZSHRC}.pre-catppuccin"*; do
+    for candidate in "${ZSHRC}.pre-catppuccin"*(N); do
       [[ -f "$candidate" ]] && best_backup="$candidate"
     done
   fi
