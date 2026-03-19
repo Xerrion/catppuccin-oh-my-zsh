@@ -128,7 +128,7 @@ show_help() {
   printf "Environment variables (--non-interactive):\n"
   printf "  CATPPUCCIN_FLAVOR        mocha|frappe|macchiato|latte\n"
   printf "  CATPPUCCIN_LAYOUT        oneline|twoline\n"
-  printf "  CATPPUCCIN_SEPARATOR     space|arrow|bar|dot|powerline|<custom>\n"
+  printf "  CATPPUCCIN_SEPARATOR     space|arrow|bar|dot|powerline|chevron|round|slash|<custom>\n"
   printf "  CATPPUCCIN_SHOW_TIME     true|false\n"
   printf "  CATPPUCCIN_SHOW_VENV     true|false\n"
   printf "  CATPPUCCIN_SHOW_PYTHON   true|false\n"
@@ -294,8 +294,11 @@ wizard_separator() {
   printf "    ${CLR_MAUVE}2)${CLR_TEAL} Arrow ${CLR_OVERLAY}(${CLR_TEAL} ❯ ${CLR_OVERLAY})${CLR_RESET}\n"
   printf "    ${CLR_MAUVE}3)${CLR_TEAL} Bar ${CLR_OVERLAY}(${CLR_TEAL} | ${CLR_OVERLAY})${CLR_RESET}\n"
   printf "    ${CLR_MAUVE}4)${CLR_TEAL} Dot ${CLR_OVERLAY}(${CLR_TEAL} · ${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}5)${CLR_TEAL} Powerline ${CLR_OVERLAY}(${CLR_TEAL} ▸ ${CLR_OVERLAY})${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}6)${CLR_TEXT} Custom${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}5)${CLR_TEAL} Powerline ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0b0'"${CLR_OVERLAY})${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}6)${CLR_TEAL} Chevron ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0b1'"${CLR_OVERLAY})${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}7)${CLR_TEAL} Round ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0b5'"${CLR_OVERLAY})${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}8)${CLR_TEAL} Slash ${CLR_OVERLAY}(${CLR_TEAL} "$'\ue0bd'"${CLR_OVERLAY})${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}9)${CLR_TEXT} Custom${CLR_RESET}\n"
   prompt "Choice" "1"
 
   local choice
@@ -308,7 +311,10 @@ wizard_separator() {
     3) CFG_SEPARATOR="bar" ;;
     4) CFG_SEPARATOR="dot" ;;
     5) CFG_SEPARATOR="powerline" ;;
-    6)
+    6) CFG_SEPARATOR="chevron" ;;
+    7) CFG_SEPARATOR="round" ;;
+    8) CFG_SEPARATOR="slash" ;;
+    9)
       prompt "Enter custom separator string" ""
       local custom_sep
       read -r custom_sep
@@ -587,7 +593,7 @@ read_env_config() {
 
   # Detect custom separator (not a known preset)
   case "$CFG_SEPARATOR" in
-    space|arrow|bar|dot|powerline) ;;
+    space|arrow|bar|dot|powerline|chevron|round|slash) ;;
     *) CFG_SEPARATOR_CUSTOM="$CFG_SEPARATOR" ;;
   esac
 

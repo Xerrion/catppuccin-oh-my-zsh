@@ -10,7 +10,7 @@
 : ${CATPPUCCIN_LAYOUT:="oneline"}
 
 # --- Separator ---
-# Preset names: arrow, bar, dot, space, powerline
+# Preset names: arrow, bar, dot, space, powerline, chevron, round, slash
 # Any other value is used as a literal separator string.
 : ${CATPPUCCIN_SEPARATOR:="space"}
 
@@ -19,7 +19,10 @@ typeset -gA _CTP_SEPARATOR_PRESETS=(
   [bar]=" | "
   [dot]=" · "
   [space]=" "
-  [powerline]=" ▸ "
+  [powerline]=$' \ue0b0 '
+  [chevron]=$' \ue0b1 '
+  [round]=$' \ue0b5 '
+  [slash]=$' \ue0bd '
 )
 
 _ctp_resolve_separator() {

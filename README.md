@@ -123,7 +123,7 @@ CATPPUCCIN_LAYOUT="oneline"  # Options: oneline (default), twoline
 ### Separator
 
 ```bash
-CATPPUCCIN_SEPARATOR="space"  # Options: space (default), arrow, bar, dot, powerline, or any custom string
+CATPPUCCIN_SEPARATOR="space"  # Options: space (default), arrow, bar, dot, powerline, chevron, round, slash, or any custom string
 ```
 
 ### Segments
