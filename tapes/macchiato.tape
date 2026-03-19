@@ -27,3 +27,4 @@ Enter
 Sleep 500ms
 
 Screenshot assets/macchiato.png
+Sleep 1s
