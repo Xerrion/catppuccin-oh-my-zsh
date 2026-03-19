@@ -22,7 +22,7 @@
 <img src="assets/latte.webp"/>
 </details>
 <details>
-<summary>🪴 Frappe</summary>
+<summary>🪴 Frappé</summary>
 <img src="assets/frappe.webp"/>
 </details>
 <details>

@@ -239,7 +239,7 @@ wizard_welcome() {
 wizard_flavor() {
   printf "${CLR_TEXT}${CLR_BOLD}  Select a flavor:${CLR_RESET}\n"
   printf "    ${CLR_MAUVE}1)${CLR_TEXT} Mocha ${CLR_SUBTEXT}(default)${CLR_RESET}\n"
-  printf "    ${CLR_MAUVE}2)${CLR_TEXT} Frappe${CLR_RESET}\n"
+  printf "    ${CLR_MAUVE}2)${CLR_TEXT} Frappé${CLR_RESET}\n"
   printf "    ${CLR_MAUVE}3)${CLR_TEXT} Macchiato${CLR_RESET}\n"
   printf "    ${CLR_MAUVE}4)${CLR_TEXT} Latte${CLR_RESET}\n"
   prompt "Choice" "1"
