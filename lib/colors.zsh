@@ -52,19 +52,27 @@ _ctp_bg_color() {
 }
 
 # Determine a high-contrast foreground for a given background color name.
-# Light backgrounds get "crust" (dark), dark backgrounds get "crust" (dark) too
-# since catppuccin accent colors are all light enough to need dark text.
-# We use a simple luminance heuristic based on the palette position.
+# In dark flavors, accent backgrounds get dark fg (crust), neutral backgrounds get light fg (text).
+# In Latte (light flavor), the palette is inverted: crust is light and text is dark,
+# so we swap the roles to maintain readable contrast.
 _ctp_contrast_fg() {
   local bg_name="$1"
+  local dark_fg light_fg
+  if [[ "$CATPPUCCIN_FLAVOR" == "latte" ]]; then
+    dark_fg="text"    # #4c4f69 — darkest in Latte
+    light_fg="crust"  # #dce0e8 — lightest in Latte
+  else
+    dark_fg="crust"   # very dark in mocha/frappe/macchiato
+    light_fg="text"   # light in mocha/frappe/macchiato
+  fi
   # Dark backgrounds: base, mantle, crust, surface0, surface1, surface2, overlay0, overlay1
   case "$bg_name" in
     base|mantle|crust|surface0|surface1|surface2|overlay0|overlay1)
-      echo "$(_ctp_color "text")"
+      echo "$(_ctp_color "$light_fg")"
       ;;
     *)
-      # Accent colors and light colors get dark foreground
-      echo "$(_ctp_color "crust")"
+      # Accent colors get the contrasting dark foreground
+      echo "$(_ctp_color "$dark_fg")"
       ;;
   esac
 }

@@ -3,7 +3,7 @@ Source tapes/config.tape
 Set Theme "Catppuccin Latte"
 
 Hide
-Type "export CTP_FLAVOR=latte"
+Type "export CATPPUCCIN_FLAVOR=latte"
 Enter
 Type "cd ~/Projects/catppuccin-zsh"
 Enter

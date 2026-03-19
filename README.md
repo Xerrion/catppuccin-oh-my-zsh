@@ -44,10 +44,8 @@
 ### Quick Install (Recommended)
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)"
+zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)"
 ```
-
-### Manual Installation
 
 1. Clone the repository:
 
@@ -232,7 +230,7 @@ CATPPUCCIN_STATUS_MODE="icon"  # Options: icon (default), code, both
 | Mode | Success | Failure |
 |------|---------|---------|
 | `icon` | Checkmark | X mark |
-| `code` | Checkmark | X mark + exit code |
+| `code` | Checkmark | Exit code |
 | `both` | Checkmark | X mark + exit code |
 
 ### Color Overrides
@@ -305,7 +303,7 @@ CATPPUCCIN_PRESET="rainbow"
 ## Uninstalling
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)" -- --uninstall
+zsh -c "$(curl -fsSL https://raw.githubusercontent.com/Xerrion/catppuccin-oh-my-zsh/main/install.sh)" -- --uninstall
 ```
 
 Or manually remove the theme directory and revert your `.zshrc` changes.

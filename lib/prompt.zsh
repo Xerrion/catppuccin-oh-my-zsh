@@ -112,7 +112,7 @@ _ctp_render_plain() {
 
 # --- Powerline Style: segments with colored backgrounds and arrow separators ---
 _ctp_render_powerline_left() {
-  local -a templates=("${@[@]:1}")  # templates from arg 2 onward
+  local -a templates=("${@[@]:2}")  # templates from arg 2 onward
   local -a names=("${(s: :)1}")     # names from arg 1
 
   local segments=()
@@ -153,7 +153,7 @@ _ctp_render_powerline_left() {
 }
 
 _ctp_render_powerline_right() {
-  local -a templates=("${@[@]:1}")
+  local -a templates=("${@[@]:2}")
   local -a names=("${(s: :)1}")
 
   local segments=()
@@ -225,15 +225,6 @@ ${line2}"
 
 # --- Transient Prompt ---
 if [[ "$CATPPUCCIN_TRANSIENT_PROMPT" == "true" ]]; then
-  _ctp_transient_prompt() {
-    local char="${CATPPUCCIN_PROMPT_CHAR:-❯}"
-    PROMPT="%F{$(_ctp_element_color "PROMPT_CHAR_OK")}%1{${char}%}%f "
-    RPROMPT=""
-    zle reset-prompt
-    # Restore full prompt for next render
-    _ctp_render_prompt
-  }
-
   # Hook into zle accept-line to trigger transient prompt
   _ctp_zle_accept_line() {
     _CTP_TRANSIENT_ACTIVE=1

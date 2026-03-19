@@ -95,10 +95,11 @@ _ctp_segment_status() {
       echo "%(?.${ok_fg}%1{${_CTP_ICON_STATUS_OK}%}%f.${err_fg}%1{${_CTP_ICON_STATUS_ERR}%}%f)"
       ;;
     code)
-      # Only show on error: display the exit code
-      echo "%(?.${ok_fg}%1{${_CTP_ICON_STATUS_OK}%}%f.${err_fg}%1{${_CTP_ICON_STATUS_ERR}%} %?%f)"
+      # Only show on error: display exit code without icon
+      echo "%(?.${ok_fg}%1{${_CTP_ICON_STATUS_OK}%}%f.${err_fg}%?%f)"
       ;;
     both)
+      # Show icon + exit code on error
       echo "%(?.${ok_fg}%1{${_CTP_ICON_STATUS_OK}%}%f.${err_fg}%1{${_CTP_ICON_STATUS_ERR}%} %?%f)"
       ;;
   esac
@@ -263,7 +264,7 @@ _ctp_segment_java() {
   echo '$(
     if [[ -f pom.xml || -f build.gradle || -f build.gradle.kts || -f .java-version ]]; then
       local ver="$(java -version 2>&1 | head -1)"
-      ver="${ver##*\"}"
+      ver="${ver#*\"}"
       ver="${ver%%\"*}"
       # Fallback for newer java --version output (unquoted)
       if [[ -z "$ver" ]]; then

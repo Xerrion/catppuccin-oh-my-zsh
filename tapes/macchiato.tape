@@ -3,7 +3,7 @@ Source tapes/config.tape
 Set Theme "Catppuccin Macchiato"
 
 Hide
-Type "export CTP_FLAVOR=macchiato"
+Type "export CATPPUCCIN_FLAVOR=macchiato"
 Enter
 Type "cd ~/Projects/catppuccin-zsh"
 Enter
