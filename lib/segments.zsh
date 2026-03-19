@@ -8,31 +8,34 @@
 # Devicons: U+E700-E8EF
 # Font Awesome: U+ED00-F2FF
 # Material Design: U+F0001-F1AF0
-typeset -gr _CTP_ICON_GIT_BRANCH=$'\ue0a0'
-typeset -gr _CTP_ICON_GIT_DIRTY=$'\uf00d'
-typeset -gr _CTP_ICON_GIT_CLEAN=$'\uf00c'
-typeset -gr _CTP_ICON_GIT_AHEAD=$'\uf062'
-typeset -gr _CTP_ICON_GIT_BEHIND=$'\uf063'
-typeset -gr _CTP_ICON_GIT_STASH=$'\uf01c'
-typeset -gr _CTP_ICON_PYTHON=$'\ue73c'
-typeset -gr _CTP_ICON_NODE=$'\ue718'
-typeset -gr _CTP_ICON_RUST=$'\ue7a8'
-typeset -gr _CTP_ICON_GO=$'\ue627'
-typeset -gr _CTP_ICON_RUBY=$'\ue739'
-typeset -gr _CTP_ICON_JAVA=$'\ue738'
-typeset -gr _CTP_ICON_PHP=$'\ue73d'
-typeset -gr _CTP_ICON_K8S=$'\U000f10fe'
-typeset -gr _CTP_ICON_JOBS=$'\uf013'
-typeset -gr _CTP_ICON_EXEC_TIME=$'\uf017'
-typeset -gr _CTP_ICON_STATUS_OK=$'\uf00c'
-typeset -gr _CTP_ICON_STATUS_ERR=$'\uf00d'
-# Powerline separator glyphs
-typeset -gr _CTP_ICON_PL_LEFT=$'\ue0b0'
-typeset -gr _CTP_ICON_PL_LEFT_THIN=$'\ue0b1'
-typeset -gr _CTP_ICON_PL_RIGHT=$'\ue0b2'
-typeset -gr _CTP_ICON_PL_RIGHT_THIN=$'\ue0b3'
-typeset -gr _CTP_ICON_PL_ROUND_LEFT=$'\ue0b4'
-typeset -gr _CTP_ICON_PL_ROUND_RIGHT=$'\ue0b6'
+# Guard: skip if already defined (re-source safe)
+if (( ! ${+_CTP_ICON_GIT_BRANCH} )); then
+  typeset -gr _CTP_ICON_GIT_BRANCH=$'\ue0a0'
+  typeset -gr _CTP_ICON_GIT_DIRTY=$'\uf00d'
+  typeset -gr _CTP_ICON_GIT_CLEAN=$'\uf00c'
+  typeset -gr _CTP_ICON_GIT_AHEAD=$'\uf062'
+  typeset -gr _CTP_ICON_GIT_BEHIND=$'\uf063'
+  typeset -gr _CTP_ICON_GIT_STASH=$'\uf01c'
+  typeset -gr _CTP_ICON_PYTHON=$'\ue73c'
+  typeset -gr _CTP_ICON_NODE=$'\ue718'
+  typeset -gr _CTP_ICON_RUST=$'\ue7a8'
+  typeset -gr _CTP_ICON_GO=$'\ue627'
+  typeset -gr _CTP_ICON_RUBY=$'\ue739'
+  typeset -gr _CTP_ICON_JAVA=$'\ue738'
+  typeset -gr _CTP_ICON_PHP=$'\ue73d'
+  typeset -gr _CTP_ICON_K8S=$'\U000f10fe'
+  typeset -gr _CTP_ICON_JOBS=$'\uf013'
+  typeset -gr _CTP_ICON_EXEC_TIME=$'\uf017'
+  typeset -gr _CTP_ICON_STATUS_OK=$'\uf00c'
+  typeset -gr _CTP_ICON_STATUS_ERR=$'\uf00d'
+  # Powerline separator glyphs
+  typeset -gr _CTP_ICON_PL_LEFT=$'\ue0b0'
+  typeset -gr _CTP_ICON_PL_LEFT_THIN=$'\ue0b1'
+  typeset -gr _CTP_ICON_PL_RIGHT=$'\ue0b2'
+  typeset -gr _CTP_ICON_PL_RIGHT_THIN=$'\ue0b3'
+  typeset -gr _CTP_ICON_PL_ROUND_LEFT=$'\ue0b4'
+  typeset -gr _CTP_ICON_PL_ROUND_RIGHT=$'\ue0b6'
+fi
 
 # --- OS Icon detection ---
 # Detects the running OS and returns the appropriate Nerd Font icon.
@@ -65,7 +68,9 @@ _ctp_detect_os_icon() {
 }
 
 # Cache the OS icon at source time (it won't change during a session)
-typeset -gr _CTP_OS_ICON="$(_ctp_detect_os_icon)"
+if (( ! ${+_CTP_OS_ICON} )); then
+  typeset -gr _CTP_OS_ICON="$(_ctp_detect_os_icon)"
+fi
 
 # --- Arrow ---
 # Green arrow on success, red on error. Uses ZSH conditional: %(?.true.false)

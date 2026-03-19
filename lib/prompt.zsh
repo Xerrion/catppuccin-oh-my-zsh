@@ -111,6 +111,19 @@ _ctp_render_plain() {
 }
 
 # --- Powerline Style: segments with colored backgrounds and arrow separators ---
+
+# Strip segment-level %F{...} and %f color codes so the powerline renderer
+# can apply its own contrast foreground on the colored background.
+_ctp_strip_fg() {
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
+  local s="$1"
+  # Remove %F{...} sequences (extended glob: [^\}]## = one-or-more non-})
+  s="${s//\%F\{[^\}]##\}/}"
+  # Remove standalone %f resets
+  s="${s//\%f/}"
+  echo "$s"
+}
+
 _ctp_render_powerline_left() {
   local -a templates=("${@[@]:2}")  # templates from arg 2 onward
   local -a names=("${(s: :)1}")     # names from arg 1
@@ -130,6 +143,9 @@ _ctp_render_powerline_left() {
     local bg_name="${(P)bg_var}"
     local bg_hex="$(_ctp_color "$bg_name")"
     local fg_hex="$(_ctp_contrast_fg "$bg_name")"
+
+    # Strip segment's own fg colors — powerline uses contrast fg instead
+    rendered="$(_ctp_strip_fg "$rendered")"
 
     local piece=""
     if [[ -n "$prev_bg" ]]; then
@@ -170,6 +186,9 @@ _ctp_render_powerline_right() {
     local bg_name="${(P)bg_var}"
     local bg_hex="$(_ctp_color "$bg_name")"
     local fg_hex="$(_ctp_contrast_fg "$bg_name")"
+
+    # Strip segment's own fg colors — powerline uses contrast fg instead
+    rendered="$(_ctp_strip_fg "$rendered")"
 
     # Right-side powerline: separator comes before the segment
     local piece="%F{${bg_hex}}%1{${_CTP_ICON_PL_RIGHT}%}%f"
